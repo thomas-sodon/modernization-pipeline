@@ -1,0 +1,215 @@
+{
+  "format_version": 1,
+  "source_kind": "accdt",
+  "queries": [
+    {
+      "name": "qAllCustomers",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": [],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Customers", "alias": null}, {"name": "Orders", "alias": null}],
+        "output_columns": [{"expression": "Customers.Name", "alias": null}, {"expression": "Orders.OrderID", "alias": null}],
+        "joins": [{"left": "Customers", "right": "Orders", "expression": "Customers.CustID = Orders.CustID", "flag": 2}],
+        "where": null,
+        "having": null,
+        "group_by": [],
+        "order_by": [{"expression": "Customers.CustID", "flag": 0}, {"expression": "Orders.OrderID", "flag": 1}]
+      }
+    },
+    {
+      "name": "qBigSpenders",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": [],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "qRegionTotals", "alias": null}],
+        "output_columns": [{"expression": "qRegionTotals.Region", "alias": null}],
+        "joins": [],
+        "where": "(((qRegionTotals.Total)>50))",
+        "having": null,
+        "group_by": [],
+        "order_by": []
+      }
+    },
+    {
+      "name": "qCustBalance",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": ["OpenAmount"],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Customers", "alias": null}],
+        "output_columns": [{"expression": "Customers.Name", "alias": null}, {"expression": "OpenAmount([Customers].[CustID])", "alias": "OpenTotal"}],
+        "joins": [],
+        "where": null,
+        "having": null,
+        "group_by": [],
+        "order_by": [{"expression": "Customers.CustID", "flag": 0}]
+      }
+    },
+    {
+      "name": "qCustOrders",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": [],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Customers", "alias": null}, {"name": "Orders", "alias": null}],
+        "output_columns": [{"expression": "Customers.Name", "alias": null}, {"expression": "Orders.OrderID", "alias": null}, {"expression": "Orders.Amount", "alias": null}],
+        "joins": [{"left": "Customers", "right": "Orders", "expression": "Customers.CustID = Orders.CustID", "flag": 1}],
+        "where": null,
+        "having": null,
+        "group_by": [],
+        "order_by": [{"expression": "Orders.OrderID", "flag": 0}]
+      }
+    },
+    {
+      "name": "qFormFilter",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": [],
+      "form_refs": ["frmMain!cboCust"],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Orders", "alias": null}],
+        "output_columns": [{"expression": "Orders.OrderID", "alias": null}],
+        "joins": [],
+        "where": "(((Orders.CustID)=[Forms]![frmMain]![cboCust]))",
+        "having": null,
+        "group_by": [],
+        "order_by": []
+      }
+    },
+    {
+      "name": "qMakeTable",
+      "storage": "sql",
+      "query_type": "action",
+      "sql": "SELECT Orders.* INTO OrdersCopy FROM Orders;",
+      "params": [],
+      "functions": [],
+      "form_refs": [],
+      "design": {}
+    },
+    {
+      "name": "qNoRewrite",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": ["NoRewrite"],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Customers", "alias": null}],
+        "output_columns": [{"expression": "NoRewrite([Customers].[CustID])", "alias": "X"}],
+        "joins": [],
+        "where": null,
+        "having": null,
+        "group_by": [],
+        "order_by": []
+      }
+    },
+    {
+      "name": "qOrdersSince",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [{"name": "Since", "type": "datetime"}],
+      "functions": [],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Orders", "alias": "o"}],
+        "output_columns": [{"expression": "o.OrderID", "alias": null}, {"expression": "o.OrderDate", "alias": null}],
+        "joins": [],
+        "where": "(((o.OrderDate)>=[Since]))",
+        "having": null,
+        "group_by": [],
+        "order_by": [{"expression": "o.OrderDate", "flag": 0}]
+      }
+    },
+    {
+      "name": "qRegionTotals",
+      "storage": "design",
+      "query_type": "select",
+      "sql": null,
+      "params": [],
+      "functions": ["Sum"],
+      "form_refs": [],
+      "design": {
+        "operation": 1,
+        "option": 0,
+        "input_tables": [{"name": "Customers", "alias": null}, {"name": "Orders", "alias": null}],
+        "output_columns": [{"expression": "Customers.Region", "alias": null}, {"expression": "Sum(Orders.Amount)", "alias": "Total"}],
+        "joins": [{"left": "Customers", "right": "Orders", "expression": "Customers.CustID = Orders.CustID", "flag": 1}],
+        "where": null,
+        "having": "(((Sum(Orders.Amount))>10))",
+        "group_by": [{"expression": "Customers.Region", "level": 0}],
+        "order_by": []
+      }
+    },
+    {
+      "name": "qRegions",
+      "storage": "design",
+      "query_type": "union",
+      "sql": null,
+      "params": [],
+      "functions": [],
+      "form_refs": [],
+      "design": {
+        "operation": 9,
+        "union_parts": ["SELECT Customers.Region FROM Customers", "SELECT Customers.Region FROM Customers WHERE Customers.Active=True"],
+        "union_all": false,
+        "order_by": [{"expression": "Region", "flag": 0}]
+      }
+    },
+    {
+      "name": "qRegionsText",
+      "storage": "sql",
+      "query_type": "union",
+      "sql": "SELECT Customers.Region FROM Customers\r\nUNION ALL SELECT \"Any\" FROM Customers WHERE Customers.CustID=1;\r\n",
+      "params": [],
+      "functions": [],
+      "form_refs": [],
+      "design": {}
+    },
+    {
+      "name": "qXtab",
+      "storage": "sql",
+      "query_type": "crosstab",
+      "sql": "TRANSFORM Sum(Orders.Amount) AS Total SELECT Orders.CustID FROM Orders GROUP BY Orders.CustID PIVOT Format(Orders.OrderDate,\"q\");",
+      "params": [],
+      "functions": ["Format", "Sum"],
+      "form_refs": [],
+      "design": {}
+    }
+  ],
+  "forms": [],
+  "reports": [],
+  "macros": [],
+  "linked_tables": []
+}

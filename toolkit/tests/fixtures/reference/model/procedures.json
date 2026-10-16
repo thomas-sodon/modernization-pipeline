@@ -1,0 +1,15 @@
+{
+  "format_version": 1,
+  "modules": [
+    {
+      "code_file": "code/modSynthetic.txt",
+      "kind": "standard",
+      "name": "modSynthetic",
+      "nonblank_lines": 12,
+      "procedures": [
+        {"end": 6, "kind": "Function", "name": "OpenAmount", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Orders"]}, "start": 1},
+        {"end": 12, "kind": "Function", "name": "NoRewrite", "refs": {"dao": false, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": []}, "start": 8}
+      ]
+    }
+  ]
+}

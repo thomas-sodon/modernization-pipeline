@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "kind": "synthetic",
+  "load_order": [
+    "Customers",
+    "Orders"
+  ],
+  "name": "seed-1",
+  "schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "seed": 1,
+  "tables": [
+    {
+      "columns": [
+        {"name": "CustID", "type": "autonumber"},
+        {"name": "Name", "type": "text"}
+      ],
+      "file": "tables/Customers.csv",
+      "name": "Customers",
+      "omitted_columns": [],
+      "rows": 3,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "columns": [
+        {"name": "OrderID", "type": "autonumber"},
+        {"name": "CustID", "type": "longinteger"},
+        {"name": "Total", "type": "currency"},
+        {"name": "Shipped", "type": "yesno"}
+      ],
+      "file": "tables/Orders.csv",
+      "name": "Orders",
+      "omitted_columns": [],
+      "rows": 4,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

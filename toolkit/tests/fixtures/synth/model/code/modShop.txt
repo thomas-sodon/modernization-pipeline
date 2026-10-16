@@ -1,0 +1,23 @@
+Option Compare Database
+Option Explicit
+
+' Hand-written synthetic module for the synth tests (a made-up widget shop).
+Public Enum enumKind
+    kAll = 0
+    kRetail = 1
+    kTrade = 2
+    kStaff = 3
+End Enum
+
+Public Enum enumSettings
+    stTaxRate = 1
+    stLastRun = 3
+End Enum
+
+Public Sub MarkRush(ByVal lngOrderID As Long)
+10      If Me.Priority = 3 Then Exit Sub   ' a commented literal: Priority = 99
+20      Me.Filter = "Priority = 5"
+30      strWhere = "Region = " & Me.txtRegion
+40      If Me.KindID = enumKind.kTrade Then MsgBox "Trade customer"
+50      If Err.Description = "Widget not found" Then Exit Sub
+End Sub

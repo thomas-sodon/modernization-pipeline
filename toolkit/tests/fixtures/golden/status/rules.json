@@ -1,0 +1,138 @@
+{
+  "areas": [
+    {
+      "forms": [],
+      "id": "alpha",
+      "procedures": [],
+      "queries": [
+        "qUnit01",
+        "qUnit02",
+        "qUnit03",
+        "qUnit04",
+        "qUnit05",
+        "qUnit06"
+      ],
+      "reports": [],
+      "status": "kept",
+      "tables": [],
+      "title": "Alpha"
+    },
+    {
+      "forms": [],
+      "id": "beta",
+      "procedures": [],
+      "queries": [
+        "qUnit07",
+        "qUnit08",
+        "qUnit09",
+        "qUnit10",
+        "qOld"
+      ],
+      "reports": [],
+      "status": "kept",
+      "tables": [],
+      "title": "Beta"
+    }
+  ],
+  "engagement": "golden-test",
+  "format_version": 1,
+  "kind": "merged",
+  "lookups": [],
+  "objects": [
+    {
+      "area": "alpha",
+      "decision": "keep",
+      "name": "qUnit01",
+      "reason": "a plain list",
+      "target_component": "alpha.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "alpha",
+      "decision": "keep",
+      "name": "qUnit02",
+      "reason": "a plain list",
+      "target_component": "alpha.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "alpha",
+      "decision": "keep",
+      "name": "qUnit03",
+      "reason": "a plain list",
+      "target_component": "alpha.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "alpha",
+      "decision": "keep",
+      "name": "qUnit04",
+      "reason": "a plain list",
+      "target_component": "alpha.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "alpha",
+      "decision": "keep",
+      "name": "qUnit05",
+      "reason": "a plain list",
+      "target_component": "alpha.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "alpha",
+      "decision": "keep",
+      "name": "qUnit06",
+      "reason": "a plain list",
+      "target_component": "alpha.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "beta",
+      "decision": "keep",
+      "name": "qUnit07",
+      "reason": "a plain list",
+      "target_component": "beta.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "beta",
+      "decision": "keep",
+      "name": "qUnit08",
+      "reason": "a plain list",
+      "target_component": "beta.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "beta",
+      "decision": "keep",
+      "name": "qUnit09",
+      "reason": "a plain list",
+      "target_component": "beta.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "beta",
+      "decision": "keep",
+      "name": "qUnit10",
+      "reason": "a plain list",
+      "target_component": "beta.saved_queries",
+      "type": "query"
+    },
+    {
+      "area": "beta",
+      "decision": "drop",
+      "name": "qOld",
+      "reason": "unused",
+      "target_component": null,
+      "type": "query"
+    }
+  ],
+  "open_questions": [],
+  "relations": [],
+  "rules": [],
+  "services": [],
+  "signed": null,
+  "spec_version": "1.0",
+  "workflows": []
+}

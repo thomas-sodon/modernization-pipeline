@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {"forms": [], "id": "sales", "procedures": [], "queries": ["qOrders", "qByCustomer", "qAction", "qEmpty", "qDropped"], "reports": [], "status": "kept", "tables": ["Customers", "Orders"], "title": "Sales"}
+  ],
+  "engagement": "golden-test",
+  "format_version": 1,
+  "kind": "merged",
+  "lookups": [],
+  "objects": [
+    {"area": "sales", "decision": "keep", "name": "Customers", "reason": null, "target_component": "legacy.models", "type": "table"},
+    {"area": "sales", "decision": "keep", "name": "Orders", "reason": null, "target_component": "legacy.models", "type": "table"},
+    {"area": "sales", "decision": "keep", "name": "qOrders", "reason": "a plain list", "target_component": "sales.saved_queries", "type": "query"},
+    {"area": "sales", "decision": "keep", "name": "qByCustomer", "reason": "a plain list", "target_component": "sales.saved_queries", "type": "query"},
+    {"area": "sales", "decision": "keep", "name": "qAction", "reason": "a plain update", "target_component": "sales.saved_queries", "type": "query"},
+    {"area": "sales", "decision": "keep", "name": "qEmpty", "reason": "a plain list", "target_component": "sales.saved_queries", "type": "query"},
+    {"area": "sales", "decision": "drop", "name": "qDropped", "reason": "duplicate", "target_component": null, "type": "query"}
+  ],
+  "open_questions": [],
+  "relations": [],
+  "rules": [],
+  "services": [],
+  "signed": null,
+  "spec_version": "1.0",
+  "workflows": []
+}

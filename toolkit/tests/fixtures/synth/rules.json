@@ -1,0 +1,22 @@
+{
+  "format_version": 1,
+  "kind": "merged",
+  "engagement": "demo-eng",
+  "spec_version": "1.0",
+  "areas": [],
+  "rules": [],
+  "objects": [],
+  "lookups": [
+    {"table": "Customers", "column": "KindID", "copy_values": true, "values": ["7", "8"], "rule": "R-shop-001"},
+    {"table": "Orders", "column": "StateID", "copy_values": true, "values": ["1", "2", "4"], "rule": "R-shop-002"},
+    {"table": "Orders", "column": "PayMethod", "copy_values": true, "values": null, "rule": "R-shop-003"},
+    {"table": "Orders", "column": "Channel", "copy_values": true, "values": null, "rule": "R-shop-004"},
+    {"table": "Settings", "column": "SettingID", "copy_values": true, "values": null, "rule": "R-shop-005"},
+    {"table": "Customers", "column": "Region", "copy_values": false, "values": null, "rule": "R-shop-006"}
+  ],
+  "relations": [],
+  "workflows": [],
+  "services": [],
+  "open_questions": [],
+  "signed": null
+}

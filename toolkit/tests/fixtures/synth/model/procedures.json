@@ -1,0 +1,7 @@
+{
+  "format_version": 1,
+  "modules": [
+    {"name": "modShop", "kind": "standard", "nonblank_lines": 24, "code_file": "code/modShop.txt", "procedures": []},
+    {"name": "modEscape", "kind": "standard", "nonblank_lines": 1, "code_file": "../escape.txt", "procedures": []}
+  ]
+}
