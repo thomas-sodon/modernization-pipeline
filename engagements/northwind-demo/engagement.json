@@ -1,0 +1,110 @@
+{
+  "id": "northwind-demo",
+  "client": "Public demo: Microsoft Northwind 2.0 Developer Edition (Access)",
+  "bootstrap": true,
+  "db_name": "northwind_demo",
+  "source": {
+    "kind": "accdt",
+    "path": "{{p.private}}/sources/northwind.accdt",
+    "url": "https://binaries.templates.cdn.office.net/support/templates/en-us/tf22238896_win32.accdt",
+    "bytes": 12895205,
+    "sha256": "5c38b53e1600c2e21ddd91cb17ce6719615c6a32deff5441fffbcb239df6e5e2",
+    "last_modified": "Wed, 27 Nov 2024 23:34:51 GMT",
+    "etag": "0x8DD0F3C1721FC6D",
+    "content_md5": "83e749b239e8d736200e88124f5c38de",
+    "on_mismatch": "report blocked; never update pins without the user",
+    "_checked": "Downloaded and hashed 2026-10-16 from a cloud container (HTTP 200). A HEAD request the same day returned the same size, last-modified, etag and content-md5 (hex of g+dJsjno1zYgDogST1w43g==). These header pins let a HEAD request catch drift before the 12.9 MB download.",
+    "data_copy": null,
+    "data_copy_sha256": null,
+    "saved_with_data": true,
+    "_saved_with_data": "The template ships with its sample data, so no data_copy is needed.",
+    "compiled_only": false,
+    "layout": "single-file",
+    "backends": [],
+    "external_links": [],
+    "licence": "Microsoft publishes no licence. Never commit or redistribute the file, its data or its VBA. Only mp-data fetch downloads it, into the private directory."
+  },
+  "target": {
+    "repo": "thomas-sodon/access-excel-to-django",
+    "root": "northwind",
+    "visibility": "private until the S6 gate, then public",
+    "_visibility": "Integrate and checkpoint run mp-data guard with --history in every demo stage, before they push, so a leak anywhere in the history is caught before the flip. Once the repo is public, you run it before every push of your own too.",
+    "mode": "github",
+    "local_path": null
+  },
+  "records": null,
+  "_records": "null: records live in <pipeline>/engagements/northwind-demo (the default for demos).",
+  "app": { "slug": "northwind", "project_name": "Northwind", "timezone": "UTC", "use_tz": false },
+  "database": { "primary": "postgresql", "verify_also": ["mssql"], "stage1": null },
+  "_database": "stage1 is null: there is no client cutover. S3 loads the engagement dataset only into the local Docker databases mpdata_northwind_demo_stage1 (PostgreSQL and SQL Server), and relink-scan prints 'not set (demo)' for the cutover facts.",
+  "auth": { "mode": "local" },
+  "hosting": { "provider": "none", "managed_by": "us" },
+  "_hosting": "No deployment; the public repo is the deliverable.",
+  "data_policy": {
+    "redact": "always",
+    "execution": "cloud-allowed",
+    "_execution": "Public sample data, so cloud sessions are allowed. The client data plane still applies, as a rehearsal: data zone, mp-data, redaction, scrub and mpdata_ databases. From S1 on the driver runs every other command through mp-run, which hides the data zone, so a task that only works by reading it fails here too.",
+    "scrub_design": true,
+    "commit_data": false,
+    "ai_terms": null,
+    "client_consent": null,
+    "_consent": "Not needed for public sample data. The driver checks ai_terms and client_consent only when bootstrap is false.",
+    "retention_days_after_acceptance": null,
+    "_retention": "No retention clock: the private directory holds only public sample data, and the stage prepare lists rebuild it from the pinned source."
+  },
+  "secrets": {
+    "_rule": "Demo: no secrets. The operator's own git and gh login pushes the pipeline and demo repos. From S1 on those pushes run inside mp-run, which hides the keyring, so the login must be gh's file-stored token over HTTPS (gh auth login --insecure-storage choosing HTTPS, then gh config set git_protocol https and gh auth setup-git; the gh environment item checks that gh auth status names hosts.yml, that both clones' origins are https://github.com/ URLs and that gh is git's credential helper for github.com). mp-data push and mp-data gh are for client target repos only.",
+    "github_push": null,
+    "accdb_password_ref": null,
+    "stage1_target_url_ref": null,
+    "staging_db_url_ref": null,
+    "production_db_url_ref": null,
+    "entra": null
+  },
+  "scope": {
+    "areas_hint": ["orders", "inventory", "purchasing", "reports"],
+    "must_keep": [
+      "order entry → invoice (printable PDF) → shipping",
+      "inventory levels and restocking",
+      "purchase order → receiving → stock update",
+      "the invoice report plus at most 4 other reports chosen at S1"
+    ],
+    "foundation": ["sign-in", "roles mirroring the app's privileges"],
+    "_note": "S1 decides the areas; ids are snake_case. Sign-in and roles belong to the foundation (S4), not to an area."
+  },
+  "assets": { "screenshots": null },
+  "commercial": {
+    "tier": "demo",
+    "budget_hours": 40,
+    "quote_is_simulated": true,
+    "milestones": [
+      { "offer": "stage2-*", "when": "S1 gate", "pct": 30 },
+      { "offer": "stage2-*", "when": "S5 gate", "pct": 40 },
+      { "offer": "stage2-*", "when": "S6 gate", "pct": 30 }
+    ],
+    "_milestones": "Only for the payment section of the simulated quote (S1). Demos buy nothing, invoice nothing and have no purchased list; the driver checks offers only when bootstrap is false."
+  },
+  "care_plan": null,
+  "environment": {
+    "windows_box": { "available": false, "host": null, "access_build": null, "client_data_allowed": true, "disk_encrypted": null, "copies": [] },
+    "_windows_box": "No Windows + Access machine yet. The S3 gate logs 'relink not rehearsed' unless one becomes available."
+  },
+  "expected_inventory": {
+    "tables": 28,
+    "queries": 65,
+    "queries_design_grid": 63,
+    "queries_sql_text": 2,
+    "forms": 40,
+    "reports": 15,
+    "modules": 18,
+    "class_modules": 1,
+    "macros": 1,
+    "data_macro_files": 20,
+    "data_macros": 20,
+    "objects_with_code_behind": 48,
+    "vba_nonblank_lines": 6886,
+    "_vba_line_rule": "Non-blank lines, excluding Attribute lines, in the 18 modules plus the CodeBehindForm/CodeBehindReport sections of forms and reports.",
+    "_count_rules": "data_macro_files counts only the .axl files under template/database/objects/dataMacros/ (20). The 55 .axl files under template/database/objects/properties/ are object metadata and are not counted (75 .axl files in all).",
+    "_measured": "2026-10-16 by a throwaway script over the downloaded file. S0 must reproduce these exactly. A difference fails inventory --expect and is settled with the user: either the parser is fixed (rerun S0.parse and S0.healthcheck with since naming the counting rule), or, after the user re-checks the measurement against _count_rules and _vba_line_rule, a number is corrected here with a dated note. Never edit a number to make a run pass."
+  }
+}

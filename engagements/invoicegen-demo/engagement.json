@@ -1,0 +1,121 @@
+{
+  "id": "invoicegen-demo",
+  "client": "Public demo, phase 2: MaxineXiong/InvoiceGenerator (Excel VBA workbook)",
+  "bootstrap": true,
+  "_bootstrap_note": "The Access tools exist by now. Bootstrap mode here builds the Excel-specific pieces (S0 xlsm parsing and dataset export, S1 data-model.json, S2.reference_xlsm, the S4.models stage1 extension for data-model.json, S6.visuals_xlsm) and reuses the rest.",
+  "db_name": "invoicegen_demo",
+  "source": {
+    "kind": "xlsm",
+    "git": "https://github.com/MaxineXiong/InvoiceGenerator",
+    "branch": "master",
+    "commit": "831e527251f11397fae411195ed00232443cb107",
+    "clone_dir": "{{p.private}}/sources/InvoiceGenerator",
+    "path": "{{p.private}}/sources/InvoiceGenerator/Invoice_Generator.xlsm",
+    "bytes": 344254,
+    "sha256": "c0a03b76e84a587b3623a09e325f7033e7889f193f4a0a7fd14def15642a33e0",
+    "on_mismatch": "report blocked; never update pins without the user",
+    "_checked": "Cloned 2026-10-16: HEAD 831e527 dated 2023-06-05 17:44:45 +1000, 13 commits, default branch master, not archived. The workbook was hashed after checkout.",
+    "vba_export": "VBA Code",
+    "sample_outputs": { "pdf_dir": "PDF Invoices", "xlsx_dir": "Excel Invoices", "msg_dir": "Sample Email Outputs" },
+    "_paths": "vba_export and sample_outputs are relative to clone_dir. The names contain spaces, so commands read them from this file and never take them as shell arguments.",
+    "data_copy": null,
+    "data_copy_sha256": null,
+    "saved_with_data": true,
+    "_saved_with_data": "The workbook holds its own data (InvoiceTable and CustomerTable).",
+    "compiled_only": false,
+    "layout": "single-file",
+    "backends": [],
+    "external_links": [],
+    "licence": "MIT, Copyright (c) 2023 MaxineXiong; not committed; credited in NOTICE",
+    "_contents": "Invoice_Generator.xlsm with 13 VBA components: 1 standard module (MainInvoiceGenerator), 0 class modules, 8 document modules (ThisWorkbook and the 7 sheets, incl. shInvoice) and 4 userforms. VBA Code/ holds 6 exported files (the 4 userforms as .frm/.frx, MainInvoiceGenerator.bas, shInvoice.cls); the 7 modules not exported hold only Option Explicit. Sample outputs: 3 PDF and 3 xlsx (Strict OOXML) for invoices 15086-15088, and 2 Outlook .msg (15087, 15088). No .eml ships.",
+    "_needs": "Excel 2010+ and Outlook on Windows to run the original; not required for this pipeline."
+  },
+  "_fallback_source": {
+    "git": "https://github.com/cod-e-ash/SalesInvoice",
+    "licence": "Apache-2.0",
+    "_note": "Has an .accdb and an .xlsm, no exported VBA (use olevba)."
+  },
+  "target": {
+    "repo": "thomas-sodon/access-excel-to-django",
+    "root": "invoice-generator",
+    "visibility": "public by the time this demo starts (made public at the northwind-demo S6 gate)",
+    "_visibility": "This demo's work happens in public. Integrate and checkpoint run mp-data guard with --history in every demo stage, before they push, and you run it before every push of your own.",
+    "mode": "github",
+    "local_path": null
+  },
+  "records": null,
+  "_records": "null: records live in <pipeline>/engagements/invoicegen-demo (the default for demos).",
+  "app": { "slug": "invoicing", "project_name": "Invoice Generator", "timezone": "UTC", "use_tz": false },
+  "database": { "primary": "postgresql", "verify_also": ["mssql"], "stage1": null },
+  "_database": "stage1 is null: S3 (data move) does not apply to workbooks.",
+  "auth": { "mode": "local" },
+  "hosting": { "provider": "none", "managed_by": "us" },
+  "_hosting": "No deployment; the public repo is the deliverable.",
+  "data_policy": {
+    "redact": "always",
+    "execution": "cloud-allowed",
+    "_execution": "Public sample data, so cloud sessions are allowed. The client data plane still applies, as a rehearsal: data zone, mp-data, redaction, scrub and mpdata_ databases. Workbook cell values stay in the data zone, never in the model. From S1 on the driver runs every other command through mp-run, which hides the data zone, so a task that only works by reading it fails here too.",
+    "scrub_design": true,
+    "commit_data": false,
+    "ai_terms": null,
+    "client_consent": null,
+    "_consent": "Not needed for public sample data. The driver checks ai_terms and client_consent only when bootstrap is false.",
+    "retention_days_after_acceptance": null,
+    "_retention": "No retention clock: the private directory holds only public sample data, and the stage prepare lists rebuild it from the pinned commit."
+  },
+  "secrets": {
+    "_rule": "Demo: no secrets. The operator's own git and gh login pushes the pipeline and demo repos. From S1 on those pushes run inside mp-run, which hides the keyring, so the login must be gh's file-stored token over HTTPS (gh auth login --insecure-storage choosing HTTPS, then gh config set git_protocol https and gh auth setup-git; the gh environment item checks that gh auth status names hosts.yml, that both clones' origins are https://github.com/ URLs and that gh is git's credential helper for github.com). mp-data push and mp-data gh are for client target repos only.",
+    "github_push": null,
+    "accdb_password_ref": null,
+    "stage1_target_url_ref": null,
+    "staging_db_url_ref": null,
+    "production_db_url_ref": null,
+    "entra": null
+  },
+  "scope": {
+    "areas_hint": ["customers", "invoices", "documents", "dashboard"],
+    "must_keep": [
+      "customer master: add, view and search (the 3 master-data userforms)",
+      "invoice list with status and date paid",
+      "for an open invoice: PDF invoice, Excel invoice and an .eml draft with the PDF attached",
+      "dashboard: year KPIs and monthly net chart for an as-of date"
+    ],
+    "foundation": ["sign-in"],
+    "email": ".eml download with the PDF attached, plus Django's file email backend; Microsoft Graph drafts are out of scope for the demo",
+    "dashboard": "Chart.js 4.5.1 from pipeline.json stack.app_assets.chartjs (chart.umd.min.js, MIT). The S5 task of the dashboard area downloads that exact URL, unchanged, to app/invoicing/dashboard/static/dashboard/vendor/chart.umd.min.js (dashboard stands for the area id S1 picks) and writes app/invoicing/dashboard/THIRD_PARTY.md with the file name, version, URL, the sha256 of the downloaded file and the licence; no CDN links. S6.handover lists it in NOTICE.md",
+    "_note": "S1 decides the areas; ids are snake_case. Email belongs to documents because the draft attaches the PDF. Excel output via openpyxl, PDF via WeasyPrint. The VBAGlossary table and the Instructions sheet are documentation, not app data."
+  },
+  "assets": { "screenshots": null },
+  "commercial": {
+    "tier": "demo",
+    "budget_hours": 20,
+    "quote_is_simulated": true,
+    "milestones": [
+      { "offer": "stage2-*", "when": "S1 gate", "pct": 30 },
+      { "offer": "stage2-*", "when": "S5 gate", "pct": 40 },
+      { "offer": "stage2-*", "when": "S6 gate", "pct": 30 }
+    ],
+    "_milestones": "Only for the payment section of the simulated quote (S1). Demos buy nothing, invoice nothing and have no purchased list; the driver checks offers only when bootstrap is false."
+  },
+  "care_plan": null,
+  "environment": {
+    "windows_box": { "available": false, "host": null, "access_build": null, "client_data_allowed": true, "disk_encrypted": null, "copies": [] },
+    "_windows_box": "Not needed: no step of this demo runs Excel or Outlook."
+  },
+  "expected_inventory": {
+    "worksheets": 7, "hidden_worksheets": 0, "chartsheets": 0,
+    "tables": 3, "table_columns": {"InvoiceTable": 27, "CustomerTable": 8, "VBAGlossary": 8},
+    "calculated_columns": 6,
+    "defined_names": 6, "defined_names_broken": 2,
+    "data_validations": 2,
+    "formula_cells": 335, "formula_cells_by_sheet": {"Dashboard": 5, "Invoice": 299, "Template": 6, "Calculation": 25},
+    "formula_cells_without_cached_value": 3, "array_formula_cells": 0,
+    "charts": 1, "form_buttons": 4, "macro_assignments": 5, "activex_controls": 2, "cell_comments": 18,
+    "vba_components": 13, "vba_standard_modules": 1, "vba_class_modules": 0, "vba_document_modules": 8, "vba_userforms": 4,
+    "vba_nonblank_lines": 546, "vba_procedures": 24, "userform_controls": 53, "vba_references": 6,
+    "sample_outputs": {"pdf": 3, "xlsx": 3, "msg": 2},
+    "_vba_line_rule": "Per component code stream as olevba extracts it (no .frm header): count lines that are non-blank after strip and do not start with 'Attribute '; comment lines count. Component type from the PROJECT stream: Module= standard, Class= class, Document= document, BaseClass= userform.",
+    "_counting_rules": "Worksheets/tables/validations/formulas via openpyxl (data_only=False; a formula cell is data_type 'f'; cached value via data_only=True). defined_names = all <definedName> in xl/workbook.xml including _xlnm.*; broken = refers_to contains #REF!. form_buttons = xl/ctrlProps objectType=Button; macro_assignments = macro= attributes in xl/drawings/drawing*.xml; activex_controls = xl/activeX/*.xml; cell_comments = <comment> in xl/comments*.xml; userform_controls = sites from olevba extract_form_strings_extended, including MultiPage pages and TabStrip; vba_references = REFERENCENAME records in the VBA dir stream.",
+    "_measured": "2026-10-16, commit 831e5272, workbook SHA-256 c0a03b76…a33e0, by scripts outside the clone."
+  }
+}

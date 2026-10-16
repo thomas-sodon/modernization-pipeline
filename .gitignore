@@ -1,0 +1,9 @@
+/vendor/
+/private/
+/data/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+paths.local.json

@@ -1,0 +1,187 @@
+{
+  "_help": "Copy to $HOME/engagements/<id>/record/engagement.json for a new client, never into the pipeline repo. Replace every <...> marker: the driver and toolkit engagement-lint refuse any marker left in a value whose key does not start with _. Null values are optional or filled later; the _ help beside each one says who sets it and when. Keys starting with _ are help and are ignored. The orchestrator writes paths.local.json next to this file before every run.",
+  "id": "<cYYYYNNN: opaque client id, e.g. c2026001; never the client's name>",
+  "client": "<Client legal name>: <one line about the app, its users, Microsoft 365 or not>",
+  "bootstrap": false,
+  "_bootstrap": "Clients run in delivery mode: the pipeline's tools are reused, not rebuilt. An agent may extend a tool in the pipeline repo, with tests, and lists the change in pipeline_changes. mp-data runs the reviewed release you pinned with `mp-data pin <sha>`, checked out at $HOME/.local/share/modernization/toolkit@<sha> with its own .venv, which agents cannot change (mp-run binds it read-only). So an extension that must touch client data waits in manual_steps until you review and pin it.",
+  "db_name": null,
+  "_db_name": "null: the driver uses the id. c2026001 gives the agent databases c2026001_dev (schema only), c2026001 (app dev, synthetic data) and test_c2026001_<slot>, and the mpdata_ databases that alone hold engagement rows: mpdata_c2026001_stage1, mpdata_c2026001_gate and mpdata_test_c2026001_<slot>. Set it only to override; it must match ^[a-z][a-z0-9_]{1,40}$.",
+  "source": {
+    "kind": "<accdt | vcs-export | accdb | mdb | xlsm>",
+    "_kinds": "accdt: the client saves the app as a template, preferably without data, plus a data_copy. vcs-export: folder exported by msaccess-vcs-addin on a Windows machine with Access. accdb or mdb: the database file itself (tables, data and query SQL read on Linux; forms, reports and VBA are not available, so S1 marks rules from them as not assessed). xlsm: Excel workbook.",
+    "path": "{{p.private}}/sources/<design file or export folder>",
+    "_path": "The operator copies what the client sent here (data zone). Agents never open it; only mp-data reads it.",
+    "sha256": null,
+    "bytes": null,
+    "_sha256": "null: S0 (mp-data fetch --verify --record-if-unset) records size and hash in {{p.records}}/source.lock.json, and later runs verify against it. Fill sha256 only if the client sends a hash with the file.",
+    "data_copy": null,
+    "data_copy_sha256": null,
+    "_data_copy": "Path under {{p.private}}/sources/ to a copy of the .accdb that holds the data, when the design file was saved without data (the usual accdt intake). A design-only accdt without data_copy cannot run S2 or S3. data_copy_sha256 is recorded like sha256: S0 (mp-data fetch --verify --record-if-unset) writes it to source.lock.json, and later runs verify against it. Not needed for health-check or assessment: those read the design file only, and a split app's back end may be left out (the health check flags it). Needed before S2 and S3: their prepare lists run parse --fail-on missing-backend.",
+    "saved_with_data": false,
+    "_saved_with_data": "true when the accdt was saved with its data, so no data_copy is needed.",
+    "compiled_only": false,
+    "_compiled_only": "true when the client has only an .accde or .mde. The driver then refuses the engagement: ask for the source .accdb.",
+    "layout": "<single-file | split>",
+    "backends": [],
+    "_backends": "For layout split: one entry per back-end file the front end links to, {\"path\": \"{{p.private}}/sources/data/<file>.accdb\", \"sha256\": null, \"password_ref\": null}. password_ref is reserved and stays null: an encrypted back end is a custom quote for now (secrets._accdb_password_ref). parse --fail-on missing-backend exits 1 on a linked table whose back end was not received (neither data_copy nor an entry here names an existing file). The pipeline handles one data back end, and data_copy points at it. A split app with more than one data back end is flagged \"custom quote\" by the health check, and parse with --fail-on multi-backend exits 2 for it.",
+    "external_links": [],
+    "_external_links": "One entry per linked table that is not an Access back end: {\"name\": \"<linked table>\", \"type\": \"<odbc-sqlserver | sharepoint | excel | text>\"}. relink-scan (S3) lists them with the pass-through queries in docs/stage1-frontend-changes.md. parse --fail-on unresolved-link fails on a linked table whose connect string it cannot classify.",
+    "licence": "client-owned; confidential; never committed or redistributed",
+    "_licence": "S6.handover reads it for the README ownership section and NOTICE. Add any third-party material inside the app, with its licence."
+  },
+  "target": {
+    "mode": "<local | github>",
+    "repo": "<client-org/repo-name when mode is github; null when mode is local>",
+    "_repo": "The GitHub owner/name, e.g. acme-widgets/acme-orders (^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$). The target repo's origin must be exactly https://github.com/<target.repo>: mp-data push and mp-data gh refuse any other origin.",
+    "root": ".",
+    "visibility": "private, owned by the client",
+    "local_path": "<absolute path of the local target repo; null when mode is github>",
+    "_local_path": "For example /home/you/engagements/c2026001/target. Absolute and expanded: no ~ and no $HOME.",
+    "_mode": "local: health-check and assessment engagements (pipeline.json offers with target_mode local). The target is a local git repo at local_path, committed on stage branches and never pushed; deliverables go to the client as files. github: the client created the repo with a main branch and granted a token scoped to it (secrets.github_push). Every push to it (integrate, your gate and change-order steps) goes through `mp-data push <eng> --branch <branch>`, and its pull requests and CI runs go only through `mp-data gh <eng> -- pr|run ...`, both with that token. Your plain-terminal fetches use rgit (runbook 1.3), which hands git the token for that one call. No credential helper is stored and nobody runs gh auth for it. When a local engagement buys a later stage, push the local history to the new client repo and switch to github.",
+    "_ci": "Target CI runs on the client's GitHub Actions minutes (SQL Server and browser jobs, about 10 minutes per push). Confirm Actions is enabled before S4."
+  },
+  "records": "<absolute path of the records repo, e.g. /home/you/engagements/c2026001/record>",
+  "_records": "Its own local git repo, created with git init before S0 (paths.local.json beside this file is gitignored): engagement.json, log.md, quote.md, estimate.json, answers.md, gates.json, change-orders/, runs/, source.lock.json, inventory.lock.json, stage1-cutover-report.md (counts only), destruction-record-<YYYY-MM-DD>.md. It must equal paths.records in paths.local.json. Never in the pipeline repo, never pushed to GitHub, never in a cloud session.",
+  "app": {
+    "slug": "<python package name, ^[a-z][a-z0-9_]{1,29}$, not in pipeline.json slug_reserved>",
+    "project_name": "<Display name>",
+    "timezone": "<IANA time zone of the client's users, e.g. Europe/London>",
+    "use_tz": false,
+    "_use_tz": "false: Access and Excel store naive local datetimes. Set true only if the source stores UTC."
+  },
+  "database": {
+    "primary": "<mssql | postgresql>",
+    "_primary": "mssql for Microsoft 365 or Azure clients, otherwise postgresql.",
+    "verify_also": [],
+    "_verify_also": "The other dialect, if the app must also pass on it locally and in CI, e.g. [\"postgresql\"].",
+    "stage1": {
+      "freeze_window": "<agreed window in client time, e.g. Fri 18:00 to Sat 12:00>",
+      "fresh_copy": "{{p.private}}/sources/cutover/<back-end file name>",
+      "relink_by": "<client | msp | us-on-windows-box>",
+      "rollback": "keep the old back end read-only for 30 days",
+      "office_bitness": "<32 | 64>",
+      "odbc_driver": "<ODBC Driver 18 for SQL Server | psqlODBC 16>"
+    },
+    "_stage1": "Needed from S3 on; for Access kinds also used at go-live (S6): when Stage 1 is not purchased, fill freeze_window, fresh_copy and rollback at the S5 gate and leave relink_by, office_bitness and odbc_driver null. fresh_copy is a data-zone path that only `mp-data stage1 <eng> --dataset fresh-copy` reads, at the cutover and at go-live. The target connection never goes here: it is secrets.stage1_target_url_ref (`--target-db secret:stage1_target_url_ref`), and at go-live secrets.production_db_url_ref."
+  },
+  "auth": {
+    "mode": "<microsoft-entra | local>",
+    "groups_to_roles": null,
+    "_groups_to_roles": "Set after S4 defines the roles, for microsoft-entra only: {\"<Entra group object id>\": \"<role>\"}. The token's groups claim carries object ids, not display names; the operator builds DJANGO_ENTRA_GROUP_ROLES from this map. Stays null for local."
+  },
+  "hosting": {
+    "provider": "<azure-app-service | render | fly | digitalocean | none>",
+    "managed_by": "<client | us>",
+    "_provider": "none for health-check, assessment and Stage-1-only engagements. managed_by us needs care_plan.purchased true."
+  },
+  "data_policy": {
+    "redact": "always",
+    "_redact": "Anything that runs on the engagement dataset goes through mp-data and is redacted. The driver refuses any other value for clients.",
+    "execution": "local",
+    "_execution": "local or cloud-allowed; clients must use local. Client runs happen only on an attested host ($HOME/.config/modernization/client-host exists; the orchestrator passes host_attested true), in a session started with claude --settings $HOME/engagements/<id>/client-session.json, which scripts/client-settings.sh <id> generates. That session runs without the Claude Code sandbox: a Bash hook allows only one mp-run or mp-data call per Bash call, Read, Edit and Write are denied on the data zone, other engagements and data.env, and mp-run runs each command under bubblewrap with the data zone, other engagements, data.env, the pass store and Docker hidden and the installed tools read-only. mp-data runs its own toolkit child under bubblewrap too: that child writes only to the data zone, $TMPDIR and the command's declared outputs, and cannot read data.env or the pass store. These means stop accidental exposure of client data by agents that follow their prompts; they do not contain a deliberately hostile agent (docs/contracts.md section 1, threat model). Never in a cloud session.",
+    "scrub_design": true,
+    "_scrub_design": "S0.parse replaces credentials, emails, phone numbers and secrets in the model with typed tokens (<SECRET-1>, <EMAIL-3>) before any agent reads it. The map stays in {{p.private}}/scrub-map.json (data zone).",
+    "commit_data": false,
+    "ai_terms": {
+      "provider": "Anthropic commercial terms",
+      "zero_data_retention": "<true | false>",
+      "checked_on": "<YYYY-MM-DD>"
+    },
+    "client_consent": {
+      "document": "<MSA, DPA or health-check terms section that allows processing by Anthropic>",
+      "signed_on": "<YYYY-MM-DD>"
+    },
+    "_consent": "The client consents to Anthropic processing the app's code and schema. The driver refuses a client run unless ai_terms.checked_on and client_consent.signed_on are set. Prospects accept the one-page health-check terms before they send any file.",
+    "retention_days_after_acceptance": 30,
+    "_retention": "Days after the last purchased stage's gate until mp-data purge deletes everything under {{p.private}}, drops the engagement's local databases on every running local server (mpdata_<db_name>_*, mpdata_test_<db_name>_*, <db_name>_dev, <db_name>, test_<db_name>_*), lists the Windows-box copies in environment.windows_box.copies to delete by hand, and writes {{p.records}}/destruction-record-<YYYY-MM-DD>.md."
+  },
+  "secrets": {
+    "_rule": "References only, each null or matching ^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$ (also source.backends[].password_ref): env:NAME is the line `export NAME=...` in $HOME/.config/modernization/data.env (chmod 600, read only by mp-data and you); NAME uses A-Z, 0-9 and _ because the env_file check rejects any other line. Its value may hold only A-Z, a-z, 0-9 and _ . : / @ % + = , - (runbook 1.6); a value with any other character, such as a URL with ? or & in its query, goes in pass. pass:<path> is the first line of that entry in the pass store. Secret values never go in the env file, prompts, args, tracked files or the design zone. Only mp-data resolves refs (pipeline:toolkit/secrets.py): before it starts its jailed toolkit child it resolves exactly the refs that call needs and hands each value over only in the child's environment as MP_SECRET_<FIELD>, never in argv, a log or a file. Gate steps that need a value (staging load, Stage 1 cutover, go-live load) run in a plain terminal outside Claude.",
+    "github_push": {
+      "ref": "<env:NAME | pass:PATH>",
+      "scope": "fine-grained PAT or GitHub App limited to <org>/<repo>",
+      "expires": "<YYYY-MM-DD>"
+    },
+    "_github_push": "Set github_push to null when target.mode is local. `mp-data push <eng> --branch <branch>` (one-shot credential helper) and `mp-data gh <eng> -- pr|run ...` (GH_TOKEN) read the token from ref and never print it. Renew it before expires; S6 revokes it unless the care plan needs it.",
+    "accdb_password_ref": null,
+    "_accdb_password_ref": "Reserved. Encrypted or password-protected sources are a custom quote for now (parse exits 2 with \"encrypted source: custom quote\"): ask the client for an unencrypted copy, or quote custom.",
+    "stage1_target_url_ref": null,
+    "_stage1_target_url_ref": "Ref (env:NAME or pass:<path>) to the Stage 1 target database URL, set before the S3 freeze window. The client or MSP creates the empty target database and lets the operator host reach it; its URL reaches the operator host only as the secret under this ref (pass:<path>, or env:NAME in $HOME/.config/modernization/data.env), which you type in a plain terminal. Nobody pastes the URL into a prompt, a repo file or chat. Only `mp-data stage1 <eng> --target-db secret:stage1_target_url_ref`, run by you in a plain terminal, resolves it.",
+    "staging_db_url_ref": null,
+    "_staging_db_url_ref": "Ref (env:NAME or pass:<path>) to the staging database URL, set before the S5 gate. The client or MSP provides the staging host and an empty staging database and lets the operator host reach that database for the load; its URL reaches the operator host only as the secret under this ref, which you type in a plain terminal. The S5 client gate deploys staging with it and loads the client's test data there from a plain terminal. Nobody pastes the URL into a prompt, a repo file or chat.",
+    "production_db_url_ref": null,
+    "_production_db_url_ref": "Ref (env:NAME or pass:<path>) to the production database URL for the go-live load at the S6 gate (docs/runbook.md of the target, Go-live and smoke checklist); typed in a plain terminal like the other refs, resolved only by mp-data stage1 --target-db secret:production_db_url_ref.",
+    "entra": {
+      "tenant_id": null,
+      "client_id": null,
+      "client_secret_ref": null,
+      "secret_expires": null,
+      "redirect_uris": []
+    },
+    "_entra": "Filled when the client admin registers the Entra app (auth.mode microsoft-entra), before the first staging deploy. client_secret_ref is a ref (env:NAME or pass:<path>), never the secret. secret_expires is its expiry date (YYYY-MM-DD); the S6 gate adds it to care_plan.calendar. redirect_uris end in /accounts/microsoft/login/callback/."
+  },
+  "scope": {
+    "areas_hint": [],
+    "_areas_hint": "Optional area ids from the client's own words: snake_case ^[a-z][a-z0-9_]{1,29}$, not in pipeline.json item_ids.reserved (users, core, legacy, domain, tests, config, admin, auth, ...) and not the app slug. S1 decides the areas.",
+    "must_keep": ["<one line per workflow the client says must keep working, from the intake call>"],
+    "_must_keep": "S1 keeps every item, and keep-drop.md names the component that implements it.",
+    "foundation": ["sign-in", "roles mirroring the app's privileges"],
+    "_foundation": "Handled by S4, not by an area.",
+    "_signed": "The signed spec is analysis/rules.md and rules.json at the S1 gate. Their hashes go to {{p.records}}/gates.json (S1); after that only an approved {{p.records}}/change-orders/CO-NNN.md changes them."
+  },
+  "assets": {
+    "screenshots": null,
+    "_screenshots": "Path under {{p.private}}/assets/ to real screenshots of the main forms, if the client supplies them. S6.visuals and S6.visuals_xlsm are skipped when set. They stay in the data zone: agents never open them."
+  },
+  "commercial": {
+    "tier": "<health-check | assessment | stage1 | stage2-small | stage2-standard>",
+    "_tier": "Pricing tier of the current quote (pipeline.json pricing_tiers). Only demos use \"demo\", which selects the demo gate checklists.",
+    "purchased": ["<health-check | assessment | stage1 | stage2-small | stage2-standard | care-plan>"],
+    "_purchased": "Every offer sold so far, one entry each: keys of pipeline.json offers. The driver runs only stages of purchased offers, checks that earlier gates are approved in {{p.records}}/gates.json, and needs the S1 deposit before S2. Add offers as they are sold.",
+    "milestones": [
+      { "offer": "assessment", "when": "S1 gate", "pct": 100 },
+      { "offer": "stage1", "when": "S3 gate", "pct": 100 },
+      { "offer": "stage2-*", "when": "S1 gate", "pct": 30 },
+      { "offer": "stage2-*", "when": "S5 gate", "pct": 40 },
+      { "offer": "stage2-*", "when": "S6 gate", "pct": 30 }
+    ],
+    "_milestones": "Payment points per offer (keys of pipeline.json offers; stage2-* stands for stage2-small and stage2-standard). The S1 quote copies them, and the S1, S3, S5 and S6 client gates invoice from them. The 30% at the S1 gate is the deposit: gates.json S1.deposit_received is set true only once it is paid, and the driver refuses S2 before that. health-check is free and has no milestone.",
+    "rate_usd_per_hour": null,
+    "_rate_usd_per_hour": "null means pipeline.json pricing.rate_usd_per_hour; first projects may set 60 to 90",
+    "budget_hours": null,
+    "_budget_hours": "Your hours: hours.point in {{p.records}}/estimate.json (hours are {low, point, high}), set when the quote is signed at the S1 gate (Stage 1 sold alone: stage1.hours.point, set at the S0 gate). Each approved change order adds its hours.",
+    "quote": null,
+    "_quote": "Fixed price in USD before any credit (Stage 2, or Stage 1 when sold alone), from quote.md or estimate.json, set at the S1 gate (Stage 1 alone: at the S0 gate).",
+    "assessment_credit_usd": null,
+    "_assessment_credit_usd": "The assessment price paid, credited in quote.md against the Stage 2 price; set at the S1 gate",
+    "quote_is_simulated": false
+  },
+  "care_plan": {
+    "purchased": false,
+    "monthly_usd": null,
+    "hours_included": null,
+    "includes": ["Django 5.2.x security releases", "dependency updates", "quarterly restore drill"],
+    "excludes": ["upgrade to Django 6.2 LTS, quoted separately before Django 5.2 support ends in April 2028"],
+    "access_after_acceptance": { "github": null, "hosting": null, "entra": "none" },
+    "_access_after_acceptance": "Set at the S6 gate; when it differs from the After acceptance section of docs/access-and-ownership.md, that section is corrected in a follow-up target PR. github: \"write while on care plan\" or \"removed\". hosting: \"Contributor on the app resource group\" or \"removed\". entra: we keep no access.",
+    "calendar": [],
+    "_calendar": "Dated reminders {date: YYYY-MM-DD, what} filled at the S6 gate: Entra secret expiry, push-token expiry, quarterly restore drills, Django 5.2 end of support.",
+    "private_data": "purge-after-retention",
+    "_private_data": "purge-after-retention: mp-data purge runs data_policy.retention_days_after_acceptance days after acceptance. keep-encrypted-for-care-plan: only with the client's written consent.",
+    "_help": "Filled when a care plan is sold (pipeline.json pricing_tiers care-plan: 200-600 USD per month, 1-4 h). Care-plan changes have no pipeline stage yet (proposal §12)."
+  },
+  "environment": {
+    "windows_box": {
+      "available": false,
+      "host": null,
+      "access_build": null,
+      "client_data_allowed": false,
+      "disk_encrypted": null,
+      "copies": []
+    },
+    "_windows_box": "A Windows machine with Access or Excel, for vcs-export intake, Format and date confirmation runs and the S3 relink rehearsal. While available is false, agents list such steps in manual_steps (where: windows-box) and the gate assigns them. Set client_data_allowed true only with the client's written consent and an encrypted disk. copies: one entry per place on the box that holds client files, {\"path\": \"<path on the box>\", \"what\": \"<what it is, e.g. relinked front-end copy>\"}, added when the copy is made (the S3 gate adds the relinked copy); mp-data purge lists them in the destruction record to delete by hand."
+  },
+  "expected_inventory": {
+    "_note": "Clients leave this empty. S0 writes the counts to {{p.records}}/inventory.lock.json (recorded, not compared) and you approve them at the S0 gate; later runs compare with the lock and fail on any difference."
+  }
+}
