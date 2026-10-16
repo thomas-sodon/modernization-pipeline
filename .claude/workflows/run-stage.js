@@ -670,7 +670,8 @@ if (problems.length) throw refuse()
 const checkSchema = cmds => ({
   type: 'object',
   properties: {
-    cmd: cmds && cmds.length ? { type: 'string', enum: cmds } : { type: 'string' },
+    // A task may run the same command twice (S4.models rebuilds the schema after migrate), but enum items must be unique.
+    cmd: cmds && cmds.length ? { type: 'string', enum: [...new Set(cmds)] } : { type: 'string' },
     exit_code: { type: 'integer' },
     passed: { type: 'boolean' },
     detail: { type: 'string' },
