@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "modules": [
+    {
+      "code_file": "code/modFixture.txt",
+      "kind": "standard",
+      "name": "modFixture",
+      "nonblank_lines": 54,
+      "procedures": [
+        {"end": 10, "kind": "Sub", "lines": 7, "name": "AddGizmoNoSee", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Gizmos"]}, "scope": "Public", "start": 4, "static": false},
+        {"end": 18, "kind": "Sub", "lines": 7, "name": "AddGizmoSee", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Gizmos"]}, "scope": "Public", "start": 12, "static": false},
+        {"end": 26, "kind": "Sub", "lines": 7, "name": "AddBinContinued", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Bins"]}, "scope": "Public", "start": 20, "static": false},
+        {"end": 35, "kind": "Sub", "lines": 8, "name": "CommentedOut", "refs": {"dao": true, "docmd": ["RunSQL"], "forms": [], "queries": [], "reports": [], "tables": ["Bins", "Gizmos"]}, "scope": "Public", "start": 28, "static": false},
+        {"end": 42, "kind": "Sub", "lines": 6, "name": "FindBin", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Bins"]}, "scope": "Public", "start": 37, "static": false},
+        {"end": 50, "kind": "Sub", "lines": 7, "name": "RelinkBins", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Bins"]}, "scope": "Public", "start": 44, "static": false},
+        {"end": 62, "kind": "Sub", "lines": 11, "name": "TouchEveryTable", "refs": {"dao": true, "docmd": [], "forms": [], "queries": [], "reports": [], "tables": ["Bins"]}, "scope": "Public", "start": 52, "static": false}
+      ]
+    }
+  ]
+}

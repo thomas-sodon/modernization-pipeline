@@ -1,0 +1,17 @@
+{
+  "format_version": 1,
+  "relationships": [],
+  "source_kind": "accdb",
+  "tables": [
+    {
+      "name": "Bins",
+      "role": "data",
+      "columns": [
+        {"name": "BinID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Code", "type": "text", "size": 10, "precision": null, "scale": null, "required": false}
+      ],
+      "primary_key": ["BinID"],
+      "indexes": []
+    }
+  ]
+}

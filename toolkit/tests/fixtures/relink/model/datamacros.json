@@ -1,0 +1,7 @@
+{
+  "datamacros": [
+    {"actions": [{"action": "SetField", "args": {"Name": "Label"}, "depth": 0}], "event": "AfterInsert", "name": null, "params": [], "table": "Gizmos"}
+  ],
+  "files": [{"macros": 1, "name": "Gizmos", "table": "Gizmos"}],
+  "format_version": 1
+}

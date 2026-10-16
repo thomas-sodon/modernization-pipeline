@@ -1,0 +1,111 @@
+{
+  "format_version": 1,
+  "kind": "synthetic",
+  "load_order": [
+    "Customers",
+    "Orders",
+    "Order Lines"
+  ],
+  "name": "seed-1",
+  "schema_sha256": "1efac8ec0e631989600312682111f394dd783875f017a9a619f40af4aeb189b1",
+  "seed": 1,
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "CustomerID",
+          "type": "autonumber"
+        },
+        {
+          "name": "Company Name",
+          "type": "text"
+        },
+        {
+          "name": "Active",
+          "type": "yesno"
+        },
+        {
+          "name": "Notes",
+          "type": "memo"
+        }
+      ],
+      "file": "tables/Customers.csv",
+      "name": "Customers",
+      "omitted_columns": [
+        {
+          "name": "Tags",
+          "reason": "complex",
+          "type": "complex"
+        }
+      ],
+      "rows": 3,
+      "sha256": "96000a60fde23d23f07bbeaebc517fb6874b49c42ccaed15d27b1d7787e4e410"
+    },
+    {
+      "columns": [
+        {
+          "name": "OrderID",
+          "type": "autonumber"
+        },
+        {
+          "name": "CustomerID",
+          "type": "longinteger"
+        },
+        {
+          "name": "OrderDate",
+          "type": "datetime"
+        },
+        {
+          "name": "Total",
+          "type": "currency"
+        },
+        {
+          "name": "Shipped",
+          "type": "yesno"
+        },
+        {
+          "name": "Reference",
+          "type": "text"
+        }
+      ],
+      "file": "tables/Orders.csv",
+      "name": "Orders",
+      "omitted_columns": [],
+      "rows": 4,
+      "sha256": "4da6cd47b3c29ca11fbf7017c9ba3d7a91b89f11bf1f031f4fc15f183f2c8cf3"
+    },
+    {
+      "columns": [
+        {
+          "name": "LineID",
+          "type": "autonumber"
+        },
+        {
+          "name": "OrderID",
+          "type": "longinteger"
+        },
+        {
+          "name": "Product",
+          "type": "text"
+        },
+        {
+          "name": "Quantity",
+          "type": "integer"
+        },
+        {
+          "name": "Price",
+          "type": "currency"
+        },
+        {
+          "name": "Discount",
+          "type": "single"
+        }
+      ],
+      "file": "tables/Order_Lines-d02b9b46.csv",
+      "name": "Order Lines",
+      "omitted_columns": [],
+      "rows": 6,
+      "sha256": "dd2777201a011a581bd16c0061410f876181e94f86ec4c06a8aa9f42500239e0"
+    }
+  ]
+}

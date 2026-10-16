@@ -1,0 +1,5 @@
+CustomerID,Company Name,Active,Notes
+1,Alpha Supplies,1,first customer
+2,"Beta, Inc.",0,\N
+3,"Gamma ""Quoted"" Co",1,"two
+lines"
