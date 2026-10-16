@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "kind": "merged",
+  "engagement": "booklend-ledger",
+  "spec_version": "1.0",
+  "areas": [
+    {"id": "fines", "title": "Fines ledger", "status": "kept", "queries": [], "forms": ["ufNewFine"], "reports": [], "procedures": ["modLedger.PostFine"], "tables": ["FineTable", "MemberTable"]},
+    {"id": "extras", "title": "Workbook extras", "status": "dropped", "queries": [], "forms": [], "reports": [], "procedures": ["modLedger.ShowAbout"], "tables": ["NotesTable"]}
+  ],
+  "rules": [
+    {"id": "R-fines-001", "area": "fines", "statement": "A fine can only be posted for a member listed in the member table.", "trigger": "procedure:modLedger.PostFine", "sources": [{"type": "procedure", "ref": "modLedger.PostFine"}, {"type": "userform", "ref": "ufNewFine"}, {"type": "data_validation", "ref": "Ledger!C2:C200"}], "tables": ["FineTable", "MemberTable"], "confidence": "high", "test_kind": "rule", "questions": []},
+    {"id": "R-fines-002", "area": "fines", "statement": "The total due is the sum of the charge lines plus the late fee.", "trigger": "cell:Ledger!I2", "sources": [{"type": "calculated_column", "ref": "FineTable[Total Due]"}], "tables": ["FineTable"], "confidence": "high", "test_kind": "equivalence", "questions": ["Q-fines-001"]},
+    {"id": "R-fines-003", "area": "fines", "statement": "The summary block totals fines per month and the chart plots those totals.", "trigger": "cell:Summary!B2", "sources": [{"type": "formula_block", "ref": "Summary!B2:B6"}, {"type": "chart", "ref": "Summary!FinesByMonth"}], "tables": ["FineTable"], "confidence": "medium", "test_kind": "equivalence", "questions": []}
+  ],
+  "objects": [
+    {"type": "table", "name": "FineTable", "decision": "keep", "area": "fines", "target_component": "legacy.models", "reason": null},
+    {"type": "table", "name": "MemberTable", "decision": "keep", "area": "fines", "target_component": "legacy.models", "reason": null},
+    {"type": "calculated_column", "name": "FineTable[Total Due]", "decision": "keep", "area": "fines", "target_component": "fines.services", "reason": null},
+    {"type": "formula_block", "name": "Summary!B2:B6", "decision": "keep", "area": "fines", "target_component": "fines.reports", "reason": null},
+    {"type": "data_validation", "name": "Ledger!C2:C200", "decision": "keep", "area": "fines", "target_component": "fines.forms", "reason": null},
+    {"type": "chart", "name": "Summary!FinesByMonth", "decision": "keep", "area": "fines", "target_component": "fines.reports", "reason": null},
+    {"type": "userform", "name": "ufNewFine", "decision": "keep", "area": "fines", "target_component": "fines.views", "reason": null},
+    {"type": "procedure", "name": "modLedger.PostFine", "decision": "keep", "area": "fines", "target_component": "fines.services", "reason": null},
+    {"type": "procedure", "name": "modLedger.ShowAbout", "decision": "drop", "area": "extras", "target_component": null, "reason": "shows a version box only"},
+    {"type": "table", "name": "NotesTable", "decision": "drop", "area": "extras", "target_component": null, "reason": "documentation table"}
+  ],
+  "lookups": [],
+  "relations": [
+    {"table": "FineTable", "fk": "Member", "on_delete": "PROTECT", "rule": "R-fines-001"}
+  ],
+  "workflows": [],
+  "services": [
+    {"name": "post_fine", "area": "fines", "inputs": ["member", "charges"], "outputs": ["fine number"], "errors": ["unknown member"]}
+  ],
+  "open_questions": [
+    {"id": "Q-fines-001", "text": "Is the late fee capped?", "status": "answered"}
+  ],
+  "signed": null
+}

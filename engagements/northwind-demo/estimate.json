@@ -1,0 +1,38 @@
+{
+  "by_area": {
+    "inventory": 19.5,
+    "orders": 49.8,
+    "purchasing": 13.4,
+    "reports": 11.1
+  },
+  "coefficients_sha256": "0e9e3bb4fa7fc6da9032378d83849b2594b353c8f3c3e387f689c492b8a55a91",
+  "delta": null,
+  "format_version": 1,
+  "hours": {
+    "high": 200.8,
+    "low": 128.5,
+    "point": 160.6
+  },
+  "inventory_sha256": "86144dbba223edfbe69ab24fbf46969401b96559249126fdedbc876a57ebc158",
+  "price_note": null,
+  "price_usd": {
+    "high": 26200,
+    "low": 16800,
+    "point": 20900
+  },
+  "rate_usd_per_hour": 130,
+  "rules_sha256": "5fa8ea6f512ce9535dd39b790488b0614bfec02f37fcd1dcccaad48488efbe7f",
+  "stage1": {
+    "hours": {
+      "high": 25.8,
+      "low": 16.5,
+      "point": 20.6
+    },
+    "price_usd": {
+      "high": 3400,
+      "low": 2200,
+      "point": 2700
+    }
+  },
+  "tier": "stage2-standard"
+}

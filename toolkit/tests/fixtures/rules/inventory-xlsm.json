@@ -1,0 +1,28 @@
+{
+  "format_version": 1,
+  "engagement": "booklend-ledger",
+  "source": {"kind": "xlsm", "sha256": "7d1c3e5f7a9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d9f1a3c5e7b9d1f"},
+  "expectation": "recorded",
+  "rate_usd_per_hour": null,
+  "rule_bearing_kinds": ["procedure", "userform", "calculated_column", "formula_block", "data_validation", "chart"],
+  "counts": {"worksheets": 3, "tables": 3, "calculated_columns": 1, "data_validations": 1, "charts": 1, "vba_userforms": 1},
+  "objects": [
+    {"type": "worksheet", "name": "Ledger", "metrics": {"formula_cells": 40}},
+    {"type": "worksheet", "name": "Summary", "metrics": {"formula_cells": 5}},
+    {"type": "worksheet", "name": "Notes", "metrics": {"formula_cells": 0}},
+    {"type": "table", "name": "FineTable", "metrics": {"columns": 9}},
+    {"type": "table", "name": "MemberTable", "metrics": {"columns": 4}},
+    {"type": "table", "name": "NotesTable", "metrics": {"columns": 2}},
+    {"type": "calculated_column", "name": "FineTable[Total Due]", "metrics": {"references": 3}},
+    {"type": "formula_block", "name": "Summary!B2:B6", "metrics": {"cells": 5}},
+    {"type": "data_validation", "name": "Ledger!C2:C200", "metrics": {"cells": 199}},
+    {"type": "chart", "name": "Summary!FinesByMonth", "metrics": {"series": 1}},
+    {"type": "userform", "name": "ufNewFine", "metrics": {"controls": 8}},
+    {"type": "module", "name": "modLedger", "metrics": {"lines": 40}},
+    {"type": "procedure", "name": "modLedger.PostFine", "metrics": {"lines": 22}},
+    {"type": "procedure", "name": "modLedger.ShowAbout", "metrics": {"lines": 4}},
+    {"type": "defined_name", "name": "FineRate", "metrics": {}}
+  ],
+  "edges": [],
+  "facts": {"source_bytes": 65536, "data_copy_bytes": null, "data_backends": 0, "linked_tables": {}, "external_links": {}, "compiled_only": false, "vba_present": true, "vba_office_references": [], "defined_names_broken": 0}
+}

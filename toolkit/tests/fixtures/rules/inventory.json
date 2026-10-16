@@ -1,0 +1,31 @@
+{
+  "format_version": 1,
+  "engagement": "booklend-demo",
+  "source": {"kind": "accdb", "sha256": "0b4e1f5a2c7d9e3b6a8f0c1d2e4f6a8b0c2d4e6f8a0b1c3d5e7f9a1b3c5d7e9f"},
+  "expectation": "compared",
+  "rate_usd_per_hour": null,
+  "rule_bearing_kinds": ["procedure", "data_macro", "macro", "query", "form", "report"],
+  "counts": {"tables": 4, "queries": 5, "forms": 1, "reports": 1, "modules": 1, "macros": 1, "data_macros": 1},
+  "objects": [
+    {"type": "table", "name": "Member", "metrics": {"columns": 6}},
+    {"type": "table", "name": "Book", "metrics": {"columns": 5}},
+    {"type": "table", "name": "Loan", "metrics": {"columns": 7}},
+    {"type": "table", "name": "Fine", "metrics": {"columns": 4}},
+    {"type": "query", "name": "qryAvailableBooks", "metrics": {"joins": 1, "outer_joins": 1, "groups": 0}},
+    {"type": "query", "name": "qryOverdueLoans", "metrics": {"joins": 2, "outer_joins": 0, "groups": 0}},
+    {"type": "query", "name": "qryMemberFines", "metrics": {"joins": 1, "outer_joins": 0, "groups": 1}},
+    {"type": "query", "name": "qryLoanCopy", "metrics": {"joins": 0, "outer_joins": 0, "groups": 0}},
+    {"type": "query", "name": "qryYearlyStats", "metrics": {"joins": 1, "outer_joins": 0, "groups": 2}},
+    {"type": "form", "name": "frmLoan", "metrics": {"controls": 14}},
+    {"type": "report", "name": "rptOverdueNotice", "metrics": {"controls": 9}},
+    {"type": "module", "name": "modLoans", "metrics": {"lines": 48}},
+    {"type": "procedure", "name": "modLoans.CheckOutBook", "metrics": {"lines": 30}},
+    {"type": "macro", "name": "mcrNightlyCleanup", "metrics": {"actions": 3}},
+    {"type": "data_macro", "name": "Loan.BeforeChange", "metrics": {"actions": 2}}
+  ],
+  "edges": [
+    {"from": "query:qryOverdueLoans", "to": "table:Loan"},
+    {"from": "form:frmLoan", "to": "procedure:modLoans.CheckOutBook"}
+  ],
+  "facts": {"source_bytes": 1048576, "data_copy_bytes": null, "data_backends": 1, "linked_tables": {}, "external_links": {}, "compiled_only": false, "vba_present": true}
+}

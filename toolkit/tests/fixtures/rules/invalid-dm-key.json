@@ -1,0 +1,240 @@
+{
+  "format_version": 1,
+  "source_kind": "xlsm",
+  "tables": [
+    {
+      "name": "member",
+      "role": "data",
+      "columns": [
+        {
+          "name": "member_code",
+          "type": "text",
+          "size": 20,
+          "precision": null,
+          "scale": null,
+          "required": true
+        },
+        {
+          "name": "full_name",
+          "type": "text",
+          "size": 255,
+          "precision": null,
+          "scale": null,
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "member_id"
+      ],
+      "indexes": []
+    },
+    {
+      "name": "fine",
+      "role": "data",
+      "columns": [
+        {
+          "name": "fine_number",
+          "type": "longinteger",
+          "size": null,
+          "precision": null,
+          "scale": null,
+          "required": true
+        },
+        {
+          "name": "member_code",
+          "type": "text",
+          "size": 20,
+          "precision": null,
+          "scale": null,
+          "required": true
+        },
+        {
+          "name": "issued_on",
+          "type": "datetime",
+          "size": null,
+          "precision": null,
+          "scale": null,
+          "required": true
+        },
+        {
+          "name": "late_fee",
+          "type": "decimal",
+          "size": null,
+          "precision": 12,
+          "scale": 2,
+          "required": false
+        }
+      ],
+      "primary_key": [
+        "fine_number"
+      ],
+      "indexes": [
+        {
+          "name": "fine_member",
+          "columns": [
+            "member_code"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "fine_charge",
+      "role": "data",
+      "columns": [
+        {
+          "name": "fine_number",
+          "type": "longinteger",
+          "size": null,
+          "precision": null,
+          "scale": null,
+          "required": true
+        },
+        {
+          "name": "line",
+          "type": "integer",
+          "size": null,
+          "precision": null,
+          "scale": null,
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "size": 255,
+          "precision": null,
+          "scale": null,
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "decimal",
+          "size": null,
+          "precision": 12,
+          "scale": 2,
+          "required": false
+        }
+      ],
+      "primary_key": [
+        "fine_number",
+        "line"
+      ],
+      "indexes": []
+    }
+  ],
+  "relationships": [
+    {
+      "name": "member_fines",
+      "from_table": "fine",
+      "from_columns": [
+        "member_code"
+      ],
+      "to_table": "member",
+      "to_columns": [
+        "member_code"
+      ],
+      "enforce": true,
+      "cascade_update": false,
+      "cascade_delete": false
+    },
+    {
+      "name": "fine_charges",
+      "from_table": "fine_charge",
+      "from_columns": [
+        "fine_number"
+      ],
+      "to_table": "fine",
+      "to_columns": [
+        "fine_number"
+      ],
+      "enforce": true,
+      "cascade_update": false,
+      "cascade_delete": true
+    }
+  ],
+  "mappings": [
+    {
+      "list_object": "MemberTable",
+      "source_column": "Member Code",
+      "table": "member",
+      "column": "member_code",
+      "line": null
+    },
+    {
+      "list_object": "MemberTable",
+      "source_column": "Name",
+      "table": "member",
+      "column": "full_name",
+      "line": null
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Fine No",
+      "table": "fine",
+      "column": "fine_number",
+      "line": null
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Member",
+      "table": "fine",
+      "column": "member_code",
+      "line": null
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Issued",
+      "table": "fine",
+      "column": "issued_on",
+      "line": null
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Late Fee",
+      "table": "fine",
+      "column": "late_fee",
+      "line": null
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Charge 1",
+      "table": "fine_charge",
+      "column": "description",
+      "line": 1
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Amount 1",
+      "table": "fine_charge",
+      "column": "amount",
+      "line": 1
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Charge 2",
+      "table": "fine_charge",
+      "column": "description",
+      "line": 2
+    },
+    {
+      "list_object": "FineTable",
+      "source_column": "Amount 2",
+      "table": "fine_charge",
+      "column": "amount",
+      "line": 2
+    }
+  ],
+  "computed": [
+    {
+      "list_object": "FineTable",
+      "source_column": "Total Due",
+      "rule": "R-fines-002"
+    }
+  ],
+  "dropped_tables": [
+    {
+      "list_object": "NotesTable",
+      "reason": "documentation"
+    }
+  ]
+}

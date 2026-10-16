@@ -1,5 +1,12 @@
 {
   "S0": {
     "approved": "2026-10-16"
+  },
+  "S1": {
+    "approved": "2026-10-16",
+    "signed_by": "Thomas Sodon, demo",
+    "rules_sha256": "5fa8ea6f512ce9535dd39b790488b0614bfec02f37fcd1dcccaad48488efbe7f",
+    "rules_md_sha256": "5456605321993a4d48e074a1b734d0f10491f9438ffe35045c122fe76eccbc6c",
+    "deposit_received": true
   }
 }
