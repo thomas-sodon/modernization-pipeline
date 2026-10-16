@@ -1,0 +1,5 @@
+ShipmentID,VendorID,ShippedOn,Freight,Express,Note
+100,1,2023-12-30T16:45:00,18.75,0,dock 2
+101,1,2024-01-02T00:00:00,0,1,\N
+102,5,2024-01-03T07:05:09,120.1234,0,""
+103,2,\N,\N,1,late

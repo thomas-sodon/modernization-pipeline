@@ -1,0 +1,33 @@
+{
+  "format_version": 1,
+  "relationships": [],
+  "source_kind": "accdb",
+  "tables": [
+    {
+      "columns": [
+        {"name": "VendorID", "precision": null, "required": true, "scale": null, "size": null, "type": "autonumber"},
+        {"name": "VendorName", "precision": null, "required": false, "scale": null, "size": 60, "type": "text"},
+        {"name": "Rating", "precision": null, "required": false, "scale": null, "size": null, "type": "integer"},
+        {"name": "Active", "precision": null, "required": true, "scale": null, "size": null, "type": "yesno"}
+      ],
+      "indexes": [],
+      "name": "Vendors",
+      "primary_key": ["VendorID"],
+      "role": "data"
+    },
+    {
+      "columns": [
+        {"name": "ShipmentID", "precision": null, "required": true, "scale": null, "size": null, "type": "autonumber"},
+        {"name": "VendorID", "precision": null, "required": false, "scale": null, "size": null, "type": "longinteger"},
+        {"name": "ShippedOn", "precision": null, "required": false, "scale": null, "size": null, "type": "datetime"},
+        {"name": "Freight", "precision": null, "required": false, "scale": null, "size": null, "type": "currency"},
+        {"name": "Express", "precision": null, "required": true, "scale": null, "size": null, "type": "yesno"},
+        {"name": "Note", "precision": null, "required": false, "scale": null, "size": 80, "type": "text"}
+      ],
+      "indexes": [],
+      "name": "Shipments",
+      "primary_key": ["ShipmentID"],
+      "role": "data"
+    }
+  ]
+}

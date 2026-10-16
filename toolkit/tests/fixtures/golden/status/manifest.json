@@ -1,0 +1,343 @@
+{
+  "engagement": "golden-test",
+  "format_version": 1,
+  "units": {
+    "qUnit01": {
+      "area": "alpha",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000001"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000065"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit01.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit02": {
+      "area": "alpha",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000002"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000066"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit02.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit03": {
+      "area": "alpha",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000003"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000067"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit03.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit04": {
+      "area": "alpha",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000004"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000068"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit04.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit05": {
+      "area": "alpha",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000005"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000069"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit05.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit06": {
+      "area": "alpha",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000006"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "000000000000000000000000000000000000000000000000000000000000006a"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit06.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit07": {
+      "area": "beta",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000007"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "000000000000000000000000000000000000000000000000000000000000006b"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit07.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit08": {
+      "area": "beta",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000008"
+          },
+          "reason": null,
+          "rows": 3,
+          "status": "ok"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "000000000000000000000000000000000000000000000000000000000000006c"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit08.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit09": {
+      "area": "beta",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": {
+            "alg": "hmac-sha256",
+            "value": "0000000000000000000000000000000000000000000000000000000000000009"
+          },
+          "reason": "empty",
+          "rows": 0,
+          "status": "empty"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "000000000000000000000000000000000000000000000000000000000000006d"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit09.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qUnit10": {
+      "area": "beta",
+      "canonical_version": 1,
+      "columns": [
+        {
+          "name": "ItemID",
+          "type": "longinteger"
+        }
+      ],
+      "datasets": {
+        "engagement": {
+          "digest": null,
+          "reason": "form-reference-unresolved",
+          "rows": null,
+          "status": "needs-params"
+        },
+        "seed-1": {
+          "digest": {
+            "alg": "sha256",
+            "value": "000000000000000000000000000000000000000000000000000000000000006e"
+          },
+          "expected": "synthetic/seed-1/expected/qUnit10.csv",
+          "reason": null,
+          "rows": 2,
+          "status": "ok"
+        }
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    }
+  }
+}

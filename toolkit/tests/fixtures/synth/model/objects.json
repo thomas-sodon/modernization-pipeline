@@ -1,0 +1,46 @@
+{
+  "format_version": 1,
+  "source_kind": "accdt",
+  "queries": [
+    {
+      "name": "qryNorthCustomers",
+      "storage": "design",
+      "query_type": "select",
+      "design": {
+        "input_tables": [{"alias": null, "name": "Customers"}],
+        "joins": [],
+        "output_columns": [{"alias": null, "expression": "Customers.*"}],
+        "where": "(((Customers.Region)=\"Nord\"))",
+        "having": null,
+        "group_by": [],
+        "order_by": []
+      },
+      "sql": null,
+      "params": [],
+      "functions": []
+    },
+    {
+      "name": "qryRushOrders",
+      "storage": "sql",
+      "query_type": "select",
+      "design": null,
+      "sql": "SELECT Orders.* FROM Orders WHERE Orders.Priority In (7, 8) AND Orders.Discount = 0.15;",
+      "params": [],
+      "functions": []
+    }
+  ],
+  "forms": [
+    {
+      "name": "frmOrder",
+      "record_source": "Orders",
+      "has_code_behind": false,
+      "sections": [],
+      "tab_pages": [],
+      "controls": [
+        {"name": "cboPay", "type": "ComboBox", "section": "Detail", "caption": null, "left": 0, "top": 0, "width": 1000, "height": 300, "control_source": "PayMethod", "row_source": "Card;\"Cash\";Voucher", "source_object": null, "page": null, "events": []}
+      ]
+    }
+  ],
+  "reports": [],
+  "macros": []
+}

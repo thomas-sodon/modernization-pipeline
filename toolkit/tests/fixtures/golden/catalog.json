@@ -1,0 +1,13 @@
+{
+  "engagement": "golden-test",
+  "engine": "ucanaccess-5.1.8",
+  "format_version": 1,
+  "units": [
+    {"id": "qOrders", "kind": "saved_query", "object": {"type": "query", "name": "qOrders"}, "sql_ref": "sql/qOrders.sql", "depends_on": [], "params": [], "app_functions": [], "status": "ok", "reason": null, "needs_access_confirmation": false},
+    {"id": "qByCustomer", "kind": "saved_query", "object": {"type": "query", "name": "qByCustomer"}, "sql_ref": "sql/qByCustomer.sql", "depends_on": [], "params": [{"name": "Forms!frmCust!CustID", "type": "longinteger", "source": "form_control"}], "app_functions": [], "status": "needs-params", "reason": "form-reference-unresolved", "needs_access_confirmation": false},
+    {"id": "qAction", "kind": "saved_query", "object": {"type": "query", "name": "qAction"}, "sql_ref": "sql/qAction.sql", "depends_on": [], "params": [], "app_functions": [], "status": "unsupported", "reason": "action-query", "needs_access_confirmation": false},
+    {"id": "qEmpty", "kind": "saved_query", "object": {"type": "query", "name": "qEmpty"}, "sql_ref": "sql/qEmpty.sql", "depends_on": [], "params": [], "app_functions": [], "status": "ok", "reason": null, "needs_access_confirmation": true},
+    {"id": "qDropped", "kind": "saved_query", "object": {"type": "query", "name": "qDropped"}, "sql_ref": "sql/qDropped.sql", "depends_on": [], "params": [], "app_functions": [], "status": "ok", "reason": null, "needs_access_confirmation": false},
+    {"id": "qOrphan", "kind": "saved_query", "object": {"type": "query", "name": "qOrphan"}, "sql_ref": "sql/qOrphan.sql", "depends_on": [], "params": [], "app_functions": [], "status": "ok", "reason": null, "needs_access_confirmation": false}
+  ]
+}

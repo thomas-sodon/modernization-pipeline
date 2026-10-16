@@ -1,0 +1,116 @@
+{
+  "format_version": 1,
+  "source_kind": "accdt",
+  "tables": [
+    {
+      "name": "Kinds",
+      "role": "data",
+      "columns": [
+        {"name": "KindID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "KindName", "type": "text", "size": 30, "precision": null, "scale": null, "required": true, "properties": {"AllowZeroLength": "0"}}
+      ],
+      "primary_key": ["KindID"],
+      "indexes": [{"name": "KindName", "columns": ["KindName"], "unique": true}]
+    },
+    {
+      "name": "Customers",
+      "role": "data",
+      "columns": [
+        {"name": "CustomerID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "KindID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "CustName", "type": "text", "size": 40, "precision": null, "scale": null, "required": true, "properties": {"AllowZeroLength": "0"}},
+        {"name": "Email", "type": "text", "size": 80, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "1"}},
+        {"name": "Phone", "type": "text", "size": 20, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "0", "InputMask": "000\\-000\\-0000;;"}},
+        {"name": "Region", "type": "text", "size": 10, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "1"}},
+        {"name": "Balance", "type": "currency", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Active", "type": "yesno", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Created", "type": "datetime", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Notes", "type": "memo", "size": null, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "1"}}
+      ],
+      "primary_key": ["CustomerID"],
+      "indexes": [{"name": "NameKind", "columns": ["CustName", "KindID"], "unique": true}]
+    },
+    {
+      "name": "OrderStates",
+      "role": "data",
+      "columns": [
+        {"name": "StateID", "type": "byte", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "StateName", "type": "text", "size": 20, "precision": null, "scale": null, "required": true, "properties": {"AllowZeroLength": "0"}}
+      ],
+      "primary_key": ["StateID"],
+      "indexes": [{"name": "StateName", "columns": ["StateName"], "unique": true}]
+    },
+    {
+      "name": "Orders",
+      "role": "data",
+      "columns": [
+        {"name": "OrderID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "CustomerID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "StateID", "type": "byte", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "OrderDate", "type": "datetime", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "ShipDate", "type": "datetime", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Quantity", "type": "integer", "size": null, "precision": null, "scale": null, "required": true, "properties": {"ValidationRule": ">0"}},
+        {"name": "Discount", "type": "single", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "PayMethod", "type": "text", "size": 20, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "0"}},
+        {"name": "Channel", "type": "text", "size": 10, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "0"}},
+        {"name": "Priority", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": false}
+      ],
+      "primary_key": ["OrderID"],
+      "indexes": []
+    },
+    {
+      "name": "OrderLines",
+      "role": "data",
+      "columns": [
+        {"name": "LineID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "OrderID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Sku", "type": "text", "size": 12, "precision": null, "scale": null, "required": true, "properties": {"AllowZeroLength": "0"}},
+        {"name": "Qty", "type": "integer", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Price", "type": "currency", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "LineTotal", "type": "currency", "size": null, "precision": null, "scale": null, "required": false, "computed": true, "formula": "[@Qty]*[@Price]"}
+      ],
+      "primary_key": ["LineID"],
+      "indexes": [{"name": "OrderSku", "columns": ["OrderID", "Sku"], "unique": true}]
+    },
+    {
+      "name": "Staff",
+      "role": "data",
+      "columns": [
+        {"name": "StaffID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "ManagerID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Login", "type": "text", "size": 20, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "0"}},
+        {"name": "Badge", "type": "guid", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Rating", "type": "double", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Photo", "type": "complex", "size": null, "precision": null, "scale": null, "required": false}
+      ],
+      "primary_key": ["StaffID"],
+      "indexes": [{"name": "Login", "columns": ["Login"], "unique": true}]
+    },
+    {
+      "name": "Settings",
+      "role": "data",
+      "columns": [
+        {"name": "SettingID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "SettingValue", "type": "text", "size": 50, "precision": null, "scale": null, "required": false, "properties": {"AllowZeroLength": "1"}}
+      ],
+      "primary_key": ["SettingID"],
+      "indexes": []
+    },
+    {
+      "name": "Glossary",
+      "role": "documentation",
+      "columns": [
+        {"name": "Term", "type": "text", "size": 50, "precision": null, "scale": null, "required": true}
+      ],
+      "primary_key": [],
+      "indexes": []
+    }
+  ],
+  "relationships": [
+    {"name": "KindsCustomers", "from_table": "Customers", "from_columns": ["KindID"], "to_table": "Kinds", "to_columns": ["KindID"], "enforce": true, "cascade_update": false, "cascade_delete": false},
+    {"name": "CustomersOrders", "from_table": "Orders", "from_columns": ["CustomerID"], "to_table": "Customers", "to_columns": ["CustomerID"], "enforce": true, "cascade_update": false, "cascade_delete": false},
+    {"name": "StatesOrders", "from_table": "Orders", "from_columns": ["StateID"], "to_table": "OrderStates", "to_columns": ["StateID"], "enforce": true, "cascade_update": false, "cascade_delete": false},
+    {"name": "OrdersLines", "from_table": "OrderLines", "from_columns": ["OrderID"], "to_table": "Orders", "to_columns": ["OrderID"], "enforce": true, "cascade_update": false, "cascade_delete": true},
+    {"name": "StaffManager", "from_table": "Staff", "from_columns": ["ManagerID"], "to_table": "Staff", "to_columns": ["StaffID"], "enforce": true, "cascade_update": false, "cascade_delete": false}
+  ]
+}

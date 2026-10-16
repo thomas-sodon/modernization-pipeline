@@ -1,0 +1,73 @@
+{
+  "format_version": 1,
+  "kind": "synthetic",
+  "load_order": [
+    "Customers",
+    "Orders"
+  ],
+  "name": "seed-1",
+  "schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "seed": 1,
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "CustID",
+          "type": "autonumber"
+        },
+        {
+          "name": "Name",
+          "type": "text"
+        },
+        {
+          "name": "Region",
+          "type": "text"
+        },
+        {
+          "name": "Active",
+          "type": "yesno"
+        }
+      ],
+      "file": "tables/Customers.csv",
+      "name": "Customers",
+      "omitted_columns": [
+        {
+          "name": "Logo",
+          "reason": "complex",
+          "type": "complex"
+        }
+      ],
+      "rows": 4,
+      "sha256": "0f524194a0e44f9630c07a0ceaa224b39bcf56ab07636361392bfe96461477e7"
+    },
+    {
+      "columns": [
+        {
+          "name": "OrderID",
+          "type": "autonumber"
+        },
+        {
+          "name": "CustID",
+          "type": "longinteger"
+        },
+        {
+          "name": "OrderDate",
+          "type": "datetime"
+        },
+        {
+          "name": "Amount",
+          "type": "currency"
+        },
+        {
+          "name": "Qty",
+          "type": "integer"
+        }
+      ],
+      "file": "tables/Orders.csv",
+      "name": "Orders",
+      "omitted_columns": [],
+      "rows": 4,
+      "sha256": "0a6e579b51ea44b5b32a68ebd8f32838d189e6d70cc7edbbbec471db8a754d4b"
+    }
+  ]
+}

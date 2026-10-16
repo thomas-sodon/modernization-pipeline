@@ -1,0 +1,48 @@
+{
+  "format_version": 1,
+  "relationships": [
+    {
+      "cascade_delete": false,
+      "cascade_update": false,
+      "enforce": true,
+      "from_columns": [
+        "CustID"
+      ],
+      "from_table": "Orders",
+      "name": "CustomersOrders",
+      "to_columns": [
+        "CustID"
+      ],
+      "to_table": "Customers"
+    }
+  ],
+  "source_kind": "accdt",
+  "tables": [
+    {
+      "columns": [
+        {"name": "CustID", "precision": null, "required": true, "scale": null, "size": null, "type": "autonumber"},
+        {"name": "Name", "precision": null, "required": false, "scale": null, "size": 50, "type": "text"},
+        {"name": "Region", "precision": null, "required": false, "scale": null, "size": 20, "type": "text"},
+        {"name": "Active", "precision": null, "required": false, "scale": null, "size": null, "type": "yesno"},
+        {"name": "Logo", "precision": null, "required": false, "scale": null, "size": null, "type": "complex"}
+      ],
+      "indexes": [],
+      "name": "Customers",
+      "primary_key": ["CustID"],
+      "role": "data"
+    },
+    {
+      "columns": [
+        {"name": "OrderID", "precision": null, "required": true, "scale": null, "size": null, "type": "autonumber"},
+        {"name": "CustID", "precision": null, "required": false, "scale": null, "size": null, "type": "longinteger"},
+        {"name": "OrderDate", "precision": null, "required": false, "scale": null, "size": null, "type": "datetime"},
+        {"name": "Amount", "precision": null, "required": false, "scale": null, "size": null, "type": "currency"},
+        {"name": "Qty", "precision": null, "required": false, "scale": null, "size": null, "type": "integer"}
+      ],
+      "indexes": [],
+      "name": "Orders",
+      "primary_key": ["OrderID"],
+      "role": "data"
+    }
+  ]
+}

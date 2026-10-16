@@ -1,0 +1,9 @@
+{
+  "args": [
+    "cust_id"
+  ],
+  "choice": "subquery",
+  "function": "OpenAmount",
+  "rewrite": "Nz((SELECT Sum(oa_o.Amount) FROM Orders AS oa_o WHERE oa_o.CustID = {cust_id}), 0)",
+  "rule": "R-test-001"
+}

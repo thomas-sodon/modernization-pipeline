@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataroot>
+<MSysRelationships><ccolumn>1</ccolumn><grbit>4352</grbit><icolumn>0</icolumn><szColumn>VendorID</szColumn><szObject>Shipments</szObject><szReferencedColumn>VendorID</szReferencedColumn><szReferencedObject>Vendors</szReferencedObject><szRelationship>VendorsShipments</szRelationship></MSysRelationships>
+</dataroot>

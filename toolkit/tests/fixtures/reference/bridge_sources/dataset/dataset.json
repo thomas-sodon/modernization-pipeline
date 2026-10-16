@@ -1,0 +1,71 @@
+{
+  "format_version": 1,
+  "kind": "engagement",
+  "load_order": [
+    "Vendors",
+    "Shipments"
+  ],
+  "name": "engagement",
+  "schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "seed": null,
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "VendorID",
+          "type": "autonumber"
+        },
+        {
+          "name": "VendorName",
+          "type": "text"
+        },
+        {
+          "name": "Rating",
+          "type": "integer"
+        },
+        {
+          "name": "Active",
+          "type": "yesno"
+        }
+      ],
+      "file": "tables/Vendors.csv",
+      "name": "Vendors",
+      "omitted_columns": [],
+      "rows": 3,
+      "sha256": "1d3c58afd10ab78f92167291839d9f1d3c7e15604b0ccb436d6fa8caf95b5e13"
+    },
+    {
+      "columns": [
+        {
+          "name": "ShipmentID",
+          "type": "autonumber"
+        },
+        {
+          "name": "VendorID",
+          "type": "longinteger"
+        },
+        {
+          "name": "ShippedOn",
+          "type": "datetime"
+        },
+        {
+          "name": "Freight",
+          "type": "currency"
+        },
+        {
+          "name": "Express",
+          "type": "yesno"
+        },
+        {
+          "name": "Note",
+          "type": "text"
+        }
+      ],
+      "file": "tables/Shipments.csv",
+      "name": "Shipments",
+      "omitted_columns": [],
+      "rows": 4,
+      "sha256": "09b201479ef7da9faca123c434b18c1ec2a05665a8c75651ee9f427a2678f58f"
+    }
+  ]
+}
