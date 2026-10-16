@@ -1,0 +1,43 @@
+/* Print stylesheet (linked with media="print" from base.html): no navigation, A4 margins. */
+@page {
+  size: A4;
+  margin: 15mm 12mm;
+}
+
+nav,
+.navbar,
+.no-print,
+.btn,
+.alert .btn-close {
+  display: none !important;
+}
+
+body {
+  font-size: 11pt;
+  color: #000;
+  background: #fff;
+}
+
+.container,
+.container-fluid {
+  max-width: none;
+  width: auto;
+  padding: 0;
+  margin: 0;
+}
+
+a[href]::after {
+  content: none;
+}
+
+table {
+  page-break-inside: auto;
+}
+
+tr {
+  page-break-inside: avoid;
+}
+
+thead {
+  display: table-header-group;
+}

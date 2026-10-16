@@ -1,0 +1,218 @@
+{%- set app_dir = "app" if target_root == "." else target_root ~ "/app" -%}
+{%- set e2e_glob = app_dir ~ "/tests/e2e/test_*.py" -%}
+{%- set e2e_if = "hashFiles('" ~ e2e_glob ~ "') != ''" -%}
+# {{ project_name }} app CI, written by `toolkit new-app` (do not edit by hand).
+# Synthetic data only: no toolkit, no secrets, no engagement data. The SQL Server password below
+# is a throwaway for the CI service container and is used nowhere else.
+name: {{ slug }}
+
+on:
+  push:
+    branches: [main]
+{%- if target_root != "." %}
+    paths:
+      - "{{ target_root }}/**"
+      - ".github/workflows/{{ slug }}.yml"
+{%- endif %}
+  pull_request:
+{%- if target_root != "." %}
+    paths:
+      - "{{ target_root }}/**"
+      - ".github/workflows/{{ slug }}.yml"
+{%- endif %}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: {{ slug }}-{% raw %}${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: {{ app_dir }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    env:
+      # The settings need a database URL; makemigrations --check only warns when no server answers.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/{{ db_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "{{ uv_version }}"
+      - run: uv sync --locked
+      - run: sudo apt-get install -y libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run python manage.py makemigrations --check --dry-run
+
+  test-postgres:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: {{ postgres_image }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/{{ db_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "{{ uv_version }}"
+      - run: uv sync --locked
+      - run: sudo apt-get install -y libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: uv run pytest -q --create-db --ignore=tests/e2e --junitxml=junit-postgres.xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: junit-{{ slug }}-postgres
+          path: {{ app_dir }}/junit-postgres.xml
+          if-no-files-found: ignore
+
+  test-mssql:
+    runs-on: ubuntu-24.04
+    services:
+      mssql:
+        image: {{ mssql_image }}
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: Ci-0nly-Throwaway
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Ci-0nly-Throwaway -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: mssql://sa:Ci-0nly-Throwaway@localhost:1433/{{ db_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "{{ uv_version }}"
+      - run: uv sync --locked
+      - run: sudo apt-get install -y libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: sudo ACCEPT_EULA=Y apt-get install -y unixodbc
+      - run: uv run pytest -q --create-db --ignore=tests/e2e --junitxml=junit-mssql.xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: junit-{{ slug }}-mssql
+          path: {{ app_dir }}/junit-mssql.xml
+          if-no-files-found: ignore
+
+  harness:
+    # The vendored equivalence harness on the synthetic seeds. No DATABASE_URL: the plugin sets it
+    # from PG_URL or MSSQL_URL (adapter.toml databases) plus /{{ slug }}, so the test database is
+    # test_{{ slug }}. The 0.90 gate is enforced locally by the S5 and S6 exit criteria.
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [postgresql, mssql]
+    services:
+      postgres:
+        image: {{ postgres_image }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      mssql:
+        image: {{ mssql_image }}
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: Ci-0nly-Throwaway
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Ci-0nly-Throwaway -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PG_URL: postgres://postgres:postgres@localhost:5432
+      MSSQL_URL: mssql://sa:Ci-0nly-Throwaway@localhost:1433
+      EQ_DB: {% raw %}${{ matrix.db }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "{{ uv_version }}"
+      - run: uv sync --locked
+      - run: sudo apt-get install -y libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: sudo ACCEPT_EULA=Y apt-get install -y unixodbc
+      - name: equivalence on seed-1, seed-2 and seed-3
+        run: |
+          export EQUIVALENCE_PRIVATE="$RUNNER_TEMP/equivalence-private"
+          mkdir -p "$EQUIVALENCE_PRIVATE"
+          status=0
+          for seed in seed-1 seed-2 seed-3; do
+            uv run python -m pytest -c pyproject.toml --rootdir . ../equivalence/tests -p equivalence.plugin --create-db --eq-adapter ../equivalence/adapter.toml --eq-dataset "$seed" --eq-db "$EQ_DB" --eq-allow-not-implemented --junitxml "junit-equivalence-$seed-$EQ_DB.xml" -p no:cacheprovider || status=1
+          done
+          exit "$status"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: junit-{{ slug }}-harness-{% raw %}${{ matrix.db }}{% endraw %}
+          path: {{ app_dir }}/junit-equivalence-*.xml
+          if-no-files-found: ignore
+
+  e2e:
+    # Runs only once tests/e2e/ holds test_*.py (hashFiles is not available in a job-level if).
+    # The e2e tests load seed-1. No screenshots or video in CI.
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: {{ postgres_image }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/{{ db_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        if: {{ e2e_if }}
+        with:
+          version: "{{ uv_version }}"
+      - if: {{ e2e_if }}
+        run: uv sync --locked
+      - if: {{ e2e_if }}
+        run: sudo apt-get install -y libpangoft2-1.0-0 libharfbuzz-subset0
+      - if: {{ e2e_if }}
+        run: uv run playwright install --with-deps chromium
+      - if: {{ e2e_if }}
+        env:
+          DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+        run: uv run pytest -q --create-db tests/e2e --junitxml=junit-e2e.xml
+      - uses: actions/upload-artifact@v7
+        if: always() && {{ e2e_if }}
+        with:
+          name: junit-{{ slug }}-e2e
+          path: {{ app_dir }}/junit-e2e.xml
+          if-no-files-found: ignore
