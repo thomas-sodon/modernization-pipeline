@@ -297,7 +297,7 @@ def test_vcs_export_table_data(tmp_path, make_engagement, capfd, quiet):
 # ------------------------------------------------------------------ data copy, bridge, back ends
 
 
-def test_data_copy_needs_the_bridge(tmp_path, make_engagement, capfd, quiet):
+def test_unreadable_data_copy(tmp_path, make_engagement, capfd, quiet):
     eng_path, eng = accdt_engagement(
         tmp_path,
         make_engagement,
@@ -309,12 +309,10 @@ def test_data_copy_needs_the_bridge(tmp_path, make_engagement, capfd, quiet):
         capfd, "dataset", "export", str(eng_path), "--out", str(out_dir(eng))
     )
     assert code == 2
-    assert summary["messages"] == [
-        "data_copy needs the Jackcess bridge from S2.reference"
-    ]
+    assert summary["messages"] == ["the database cannot be opened"]
 
 
-def test_accdb_source_needs_the_bridge(tmp_path, make_engagement, capfd, quiet):
+def test_unreadable_accdb_source(tmp_path, make_engagement, capfd, quiet):
     eng_path, eng = setup(
         tmp_path,
         make_engagement,
@@ -331,17 +329,15 @@ def test_accdb_source_needs_the_bridge(tmp_path, make_engagement, capfd, quiet):
         capfd, "dataset", "export", str(eng_path), "--out", str(out_dir(eng))
     )
     assert code == 2
-    assert summary["messages"] == [
-        "data_copy needs the Jackcess bridge from S2.reference"
-    ]
+    assert summary["messages"] == ["the database cannot be opened"]
 
 
 def test_open_backend(tmp_path):
-    with pytest.raises(tds.BridgeNeeded) as exc:
+    with pytest.raises(tds.SourceError) as exc:
         f = tmp_path / "back.accdb"
         f.write_bytes(b"\x00" * 64)
         tds.open_backend(f, json.loads(SCHEMA.read_text()))
-    assert str(exc.value) == "data_copy needs the Jackcess bridge from S2.reference"
+    assert str(exc.value) == "the database cannot be opened"
     with pytest.raises(tds.SourceError):
         tds.open_backend(tmp_path / "missing.accdb")
     reader = tds.open_backend(SAMPLE)
