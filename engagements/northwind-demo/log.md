@@ -6,4 +6,4 @@
 | 2026-10-16 | S1 | 2 | wf_0b551f37-65e | bootstrap | 10 | 7/16 | 1 | 658 | 1503021 | 39496447 | 44275 | 16.3 | 0 | 0 | 0 | yes | note: estimate hours.point 160.6 vs budget_hours 40 (budget counts operator hours; build hours are agent work); quote simulated |
 | 2026-10-16 | S2 | 1 | wf_66e4222f-e20 | bootstrap | 12 | 7/14 | 1 | 920 | 2389855 | 99691276 | 52360 | 32.94 | pending | pending | pending | no | 1 blocking finding(s) |
 | 2026-10-16 | S2 | 2 | wf_4035b199-dd7 | bootstrap | 12 | 7/14 | 1 | 644 | 1346819 | 27832463 | 50691 | 13.32 | 0 | 0 | 0 | yes | note: 8 units needs-access-confirmation recorded as UCanAccess reference (no Windows run for the demo) |
-| 2026-10-16 | S3 | 1 | wf_cc51496a-01d | bootstrap | 9 | 5/10 | 1 | 496 | 1315588 | 35614849 | 43896 | 14.58 | pending | pending | pending | yes | none |
+| 2026-10-16 | S3 | 1 | wf_cc51496a-01d | bootstrap | 9 | 5/10 | 1 | 496 | 1315588 | 35614849 | 43896 | 14.58 | 0 | 0 | 0 | yes | relink not rehearsed (no Windows box); note: mp-data mssql pre-start probe reports ConnectionStringParseError although load and verify pass |
