@@ -1,0 +1,17 @@
+{
+  "CO-001": {
+    "approved": "2026-11-20",
+    "rules_md_sha256": "8472191450ef0d598eab8f37c67229d64cc4e74cc8521e02037a54c5c09f8e88",
+    "rules_sha256": "9a9b389750ea9a272f430d739ec452b5ebc592f2a7fb9a540e2a13b66a83a7ad"
+  },
+  "S0": {
+    "approved": "2026-10-20"
+  },
+  "S1": {
+    "approved": "2026-11-02",
+    "deposit_received": true,
+    "rules_md_sha256": "b4e27389cf567e9e016843e9dc4594674dbb5f9676b95c0ad4e9873b6161bdc2",
+    "rules_sha256": "5be935f172a6f0b3e3a1620ea47de95aad62eac5719a0a2ba78478114990afe9",
+    "signed_by": "Fixture Signer (demo)"
+  }
+}

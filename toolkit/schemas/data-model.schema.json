@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modernization-pipeline.invalid/schemas/data-model.schema.json",
+  "title": "Workbook data model, analysis/data-model.json (docs/contracts.md#rules-json, xlsm only)",
+  "description": "Tables and relationships in the model.schema.json shapes (by $ref), plus the mapping from ListObject columns. Semantic checks live in toolkit/rules.py (schema-lint).",
+  "type": "object",
+  "required": ["format_version", "source_kind", "tables", "relationships", "mappings", "computed", "dropped_tables"],
+  "properties": {
+    "format_version": {"const": 1},
+    "source_kind": {"const": "xlsm"},
+    "tables": {"type": "array", "items": {"$ref": "model.schema.json#/$defs/table"}},
+    "relationships": {"type": "array", "items": {"$ref": "model.schema.json#/$defs/relationship"}},
+    "mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["list_object", "source_column", "table", "column", "line"],
+        "properties": {
+          "list_object": {"type": "string", "minLength": 1},
+          "source_column": {"type": "string", "minLength": 1},
+          "table": {"type": "string", "minLength": 1},
+          "column": {"type": "string", "minLength": 1},
+          "line": {"oneOf": [{"type": "null"}, {"type": "integer", "minimum": 1}]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "computed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["list_object", "source_column", "rule"],
+        "properties": {
+          "list_object": {"type": "string", "minLength": 1},
+          "source_column": {"type": "string", "minLength": 1},
+          "rule": {"type": "string", "pattern": "^R-[a-z][a-z0-9_]{1,29}-[0-9]{3}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "dropped_tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["list_object", "reason"],
+        "properties": {
+          "list_object": {"type": "string", "minLength": 1},
+          "reason": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

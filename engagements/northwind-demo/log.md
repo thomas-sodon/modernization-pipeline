@@ -2,3 +2,4 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 2026-10-16 | S0 | 1 | wf_310288a7-4f2 | bootstrap | 5 | 8/16 | 0 | 520 | 1259178 | 51937912 | 35435 | 17.39 | pending | pending | pending | no | S0.dataset blocked; S0.guard skipped; S0.review skipped |
 | 2026-10-16 | S0 | 2 | wf_8ab73e0c-5cb | bootstrap | 11 | 7/15 | 1 | 562 | 1115483 | 26876670 | 31882 | 11.59 | 0 | 0 | 0 | yes | none |
+| 2026-10-16 | S1 | 1 | pending | bootstrap | 13 | 10/19 | 1 | see runbook | see runbook | see runbook | see runbook | see runbook | pending | pending | pending | no | 1 blocking finding(s) |

@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modernization-pipeline.invalid/schemas/rules.schema.json",
+  "title": "Rules file (docs/contracts.md#rules-json)",
+  "description": "analysis/rules/<area>.json (kind area) and analysis/rules.json (kind merged). Semantic checks that a schema cannot express live in toolkit/rules.py (rules-lint).",
+  "type": "object",
+  "required": ["format_version", "kind", "engagement", "spec_version", "areas", "rules", "objects", "lookups", "relations", "workflows", "services", "open_questions", "signed"],
+  "properties": {
+    "format_version": {"const": 1},
+    "kind": {"enum": ["area", "merged"]},
+    "engagement": {"type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 40},
+    "spec_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "areas": {"type": "array", "items": {"$ref": "#/$defs/area"}},
+    "rules": {"type": "array", "items": {"$ref": "#/$defs/rule"}},
+    "objects": {"type": "array", "items": {"$ref": "#/$defs/object"}},
+    "lookups": {"type": "array", "items": {"$ref": "#/$defs/lookup"}},
+    "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+    "workflows": {"type": "array", "items": {"$ref": "#/$defs/workflow"}},
+    "services": {"type": "array", "items": {"$ref": "#/$defs/service"}},
+    "open_questions": {"type": "array", "items": {"$ref": "#/$defs/question"}},
+    "signed": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["by", "date", "rules_md_sha256", "rules_json_sha256"],
+          "properties": {
+            "by": {"type": "string", "minLength": 1},
+            "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+            "rules_md_sha256": {"$ref": "#/$defs/sha256"},
+            "rules_json_sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "area_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,29}$"},
+    "rule_id": {"type": "string", "pattern": "^R-[a-z][a-z0-9_]{1,29}-[0-9]{3}$"},
+    "question_id": {"type": "string", "pattern": "^Q-[a-z][a-z0-9_]{1,29}-[0-9]{3}$"},
+    "name": {"type": "string", "minLength": 1},
+    "names": {"type": "array", "items": {"$ref": "#/$defs/name"}},
+    "object_type": {
+      "$comment": "Inventory object types (docs/contracts.md#inventory), Access and xlsm.",
+      "enum": ["table", "query", "form", "report", "module", "macro", "procedure", "data_macro", "worksheet", "userform", "defined_name", "calculated_column", "formula_block", "data_validation", "chart"]
+    },
+    "area": {
+      "type": "object",
+      "required": ["id", "title", "status", "queries", "forms", "reports", "procedures", "tables"],
+      "properties": {
+        "id": {"$ref": "#/$defs/area_id"},
+        "title": {"$ref": "#/$defs/name"},
+        "status": {"enum": ["kept", "dropped"]},
+        "queries": {"$ref": "#/$defs/names"},
+        "forms": {"$ref": "#/$defs/names"},
+        "reports": {"$ref": "#/$defs/names"},
+        "procedures": {"$ref": "#/$defs/names"},
+        "tables": {"$ref": "#/$defs/names"}
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["type", "ref"],
+      "properties": {
+        "type": {"$ref": "#/$defs/object_type"},
+        "ref": {"$ref": "#/$defs/name"}
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "required": ["id", "area", "statement", "trigger", "sources", "tables", "confidence", "test_kind", "questions"],
+      "properties": {
+        "id": {"$ref": "#/$defs/rule_id"},
+        "area": {"$ref": "#/$defs/area_id"},
+        "statement": {"$ref": "#/$defs/name"},
+        "trigger": {
+          "type": "string",
+          "pattern": "^(form:[^.]+(\\.[^.]+)+|report:[^.]+(\\.[^.]+)+|datamacro:[^.]+\\.[^.]+|macro:.+|procedure:[^.]+\\.[^.]+|query:.+|cell:.+![A-Z]{1,3}[0-9]+|schedule:(startup|timer:.+|ontime:.+|task:.+))$"
+        },
+        "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+        "tables": {"$ref": "#/$defs/names"},
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "test_kind": {"enum": ["rule", "equivalence", "e2e"]},
+        "questions": {"type": "array", "items": {"$ref": "#/$defs/question_id"}}
+      },
+      "additionalProperties": false
+    },
+    "object": {
+      "type": "object",
+      "required": ["type", "name", "decision", "area", "target_component", "reason"],
+      "properties": {
+        "type": {"$ref": "#/$defs/object_type"},
+        "name": {"$ref": "#/$defs/name"},
+        "decision": {"enum": ["keep", "drop", "out_of_scope"]},
+        "area": {"$ref": "#/$defs/area_id"},
+        "target_component": {"type": ["string", "null"]},
+        "reason": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false,
+      "if": {"properties": {"decision": {"const": "keep"}}},
+      "then": {
+        "properties": {
+          "target_component": {"type": "string", "pattern": "^(foundation:.+|[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*)$"},
+          "reason": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1}]}
+        }
+      },
+      "else": {
+        "properties": {
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "lookup": {
+      "type": "object",
+      "required": ["table", "column", "copy_values", "values", "rule"],
+      "properties": {
+        "table": {"$ref": "#/$defs/name"},
+        "column": {"$ref": "#/$defs/name"},
+        "copy_values": {"type": "boolean"},
+        "values": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+          ]
+        },
+        "rule": {"$ref": "#/$defs/rule_id"}
+      },
+      "additionalProperties": false,
+      "if": {"properties": {"copy_values": {"const": false}}},
+      "then": {"properties": {"values": {"type": "null", "description": "values set without copy_values true"}}}
+    },
+    "relation": {
+      "type": "object",
+      "required": ["table", "fk", "on_delete", "rule"],
+      "properties": {
+        "table": {"$ref": "#/$defs/name"},
+        "fk": {"$ref": "#/$defs/name"},
+        "on_delete": {"enum": ["CASCADE", "PROTECT", "SET_NULL", "DO_NOTHING"]},
+        "rule": {"$ref": "#/$defs/rule_id"}
+      },
+      "additionalProperties": false
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["id", "title", "forms", "reports", "rules", "steps"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "title": {"$ref": "#/$defs/name"},
+        "forms": {"$ref": "#/$defs/names"},
+        "reports": {"$ref": "#/$defs/names"},
+        "rules": {"type": "array", "items": {"$ref": "#/$defs/rule_id"}},
+        "steps": {"$ref": "#/$defs/names"}
+      },
+      "additionalProperties": false
+    },
+    "service": {
+      "type": "object",
+      "required": ["name", "area", "inputs", "outputs", "errors"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "area": {"$ref": "#/$defs/area_id"},
+        "inputs": {"$ref": "#/$defs/names"},
+        "outputs": {"$ref": "#/$defs/names"},
+        "errors": {"$ref": "#/$defs/names"}
+      },
+      "additionalProperties": false
+    },
+    "question": {
+      "type": "object",
+      "required": ["id", "text", "status"],
+      "properties": {
+        "id": {"$ref": "#/$defs/question_id"},
+        "text": {"$ref": "#/$defs/name"},
+        "status": {"enum": ["open", "answered"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

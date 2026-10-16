@@ -1,0 +1,343 @@
+{
+  "format_version": 1,
+  "kind": "merged",
+  "engagement": "booklend-demo",
+  "spec_version": "1.0",
+  "areas": [
+    {
+      "id": "catalog",
+      "title": "Book catalogue",
+      "status": "kept",
+      "queries": [
+        "qryAvailableBooks"
+      ],
+      "forms": [],
+      "reports": [],
+      "procedures": [],
+      "tables": [
+        "Book"
+      ]
+    },
+    {
+      "id": "lending",
+      "title": "Loans and fines",
+      "status": "kept",
+      "queries": [
+        "qryOverdueLoans",
+        "qryMemberFines",
+        "qryLoanCopy"
+      ],
+      "forms": [
+        "frmLoan"
+      ],
+      "reports": [
+        "rptOverdueNotice"
+      ],
+      "procedures": [
+        "modLoans.CheckOutBook"
+      ],
+      "tables": [
+        "Member",
+        "Loan",
+        "Fine"
+      ]
+    },
+    {
+      "id": "admin",
+      "title": "Housekeeping jobs",
+      "status": "dropped",
+      "queries": [
+        "qryYearlyStats"
+      ],
+      "forms": [],
+      "reports": [],
+      "procedures": [],
+      "tables": []
+    }
+  ],
+  "rules": [
+    {
+      "id": "R-catalog-001",
+      "area": "catalog",
+      "statement": "Each book carries a catalogue code that no other book uses.",
+      "trigger": "form:frmLoan.BeforeUpdate",
+      "sources": [
+        {
+          "type": "table",
+          "ref": "Book"
+        }
+      ],
+      "tables": [
+        "Book"
+      ],
+      "confidence": "medium",
+      "test_kind": "rule",
+      "questions": []
+    },
+    {
+      "id": "R-lending-001",
+      "area": "lending",
+      "statement": "A member whose unpaid fines exceed the limit cannot borrow another book.",
+      "trigger": "procedure:modLoans.CheckOutBook",
+      "sources": [
+        {
+          "type": "procedure",
+          "ref": "modLoans.CheckOutBook"
+        },
+        {
+          "type": "data_macro",
+          "ref": "Loan.BeforeChange"
+        }
+      ],
+      "tables": [
+        "Loan",
+        "Fine",
+        "Member"
+      ],
+      "confidence": "high",
+      "test_kind": "rule",
+      "questions": [
+        "Q-lending-001"
+      ]
+    },
+    {
+      "id": "R-lending-002",
+      "area": "lending",
+      "statement": "A loan is overdue when its due date has passed and the book is not back; the fine grows per day late.",
+      "trigger": "query:qryOverdueLoans",
+      "sources": [
+        {
+          "type": "query",
+          "ref": "qryOverdueLoans"
+        },
+        {
+          "type": "query",
+          "ref": "qryMemberFines"
+        }
+      ],
+      "tables": [
+        "Loan",
+        "Fine"
+      ],
+      "confidence": "high",
+      "test_kind": "equivalence",
+      "questions": []
+    },
+    {
+      "id": "R-lending-003",
+      "area": "lending",
+      "statement": "Checking a book out through the loan form and printing the overdue notice follow one path.",
+      "trigger": "form:frmLoan.BeforeUpdate",
+      "sources": [
+        {
+          "type": "form",
+          "ref": "frmLoan"
+        },
+        {
+          "type": "report",
+          "ref": "rptOverdueNotice"
+        }
+      ],
+      "tables": [
+        "Loan"
+      ],
+      "confidence": "medium",
+      "test_kind": "e2e",
+      "questions": []
+    }
+  ],
+  "objects": [
+    {
+      "type": "table",
+      "name": "Book",
+      "decision": "keep",
+      "area": "catalog",
+      "target_component": "legacy.models",
+      "reason": null
+    },
+    {
+      "type": "query",
+      "name": "qryAvailableBooks",
+      "decision": "keep",
+      "area": "catalog",
+      "target_component": "catalog.saved_queries",
+      "reason": "a plain list of books on the shelf; its unit proves it, no rule"
+    },
+    {
+      "type": "table",
+      "name": "Member",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "legacy.models",
+      "reason": null
+    },
+    {
+      "type": "table",
+      "name": "Loan",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "legacy.models",
+      "reason": null
+    },
+    {
+      "type": "table",
+      "name": "Fine",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "legacy.models",
+      "reason": null
+    },
+    {
+      "type": "query",
+      "name": "qryOverdueLoans",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "lending.saved_queries",
+      "reason": null
+    },
+    {
+      "type": "query",
+      "name": "qryMemberFines",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "lending.saved_queries",
+      "reason": null
+    },
+    {
+      "type": "query",
+      "name": "qryLoanCopy",
+      "decision": "drop",
+      "area": "lending",
+      "target_component": null,
+      "reason": "duplicate of qryOverdueLoans"
+    },
+    {
+      "type": "form",
+      "name": "frmLoan",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "lending.views",
+      "reason": null
+    },
+    {
+      "type": "report",
+      "name": "rptOverdueNotice",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "lending.reports",
+      "reason": null
+    },
+    {
+      "type": "procedure",
+      "name": "modLoans.CheckOutBook",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "lending.services",
+      "reason": null
+    },
+    {
+      "type": "data_macro",
+      "name": "Loan.BeforeChange",
+      "decision": "keep",
+      "area": "lending",
+      "target_component": "lending.models",
+      "reason": null
+    },
+    {
+      "type": "query",
+      "name": "qryYearlyStats",
+      "decision": "out_of_scope",
+      "area": "admin",
+      "target_component": null,
+      "reason": "yearly statistics, not requested"
+    },
+    {
+      "type": "macro",
+      "name": "mcrNightlyCleanup",
+      "decision": "out_of_scope",
+      "area": "admin",
+      "target_component": null,
+      "reason": "nightly compaction job; the database server replaces it"
+    }
+  ],
+  "lookups": [
+    {
+      "table": "Loan",
+      "column": "Status",
+      "copy_values": true,
+      "values": [
+        "OUT",
+        "BACK",
+        "LOST"
+      ],
+      "rule": "R-lending-001"
+    },
+    {
+      "table": "Member",
+      "column": "Tier",
+      "copy_values": false,
+      "values": null,
+      "rule": "R-lending-001"
+    }
+  ],
+  "relations": [
+    {
+      "table": "Loan",
+      "fk": "MemberID",
+      "on_delete": "PROTECT",
+      "rule": "R-lending-001"
+    },
+    {
+      "table": "Fine",
+      "fk": "LoanID",
+      "on_delete": "CASCADE",
+      "rule": "R-lending-002"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "checkout_to_notice",
+      "title": "Check out, then overdue notice",
+      "forms": [
+        "frmLoan"
+      ],
+      "reports": [
+        "rptOverdueNotice"
+      ],
+      "rules": [
+        "R-lending-003",
+        "R-lending-001"
+      ],
+      "steps": [
+        "check a book out",
+        "let the due date pass",
+        "print the overdue notice"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "check_out_book",
+      "area": "lending",
+      "inputs": [
+        "member id",
+        "book id"
+      ],
+      "outputs": [
+        "loan id"
+      ],
+      "errors": [
+        "fines over limit",
+        "book not available"
+      ]
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "Q-lending-001",
+      "text": "Is the fine limit per member or per household?",
+      "status": "open"
+    }
+  ],
+  "signed": null
+}
