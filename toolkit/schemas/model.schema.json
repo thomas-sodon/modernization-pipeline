@@ -285,6 +285,9 @@
             "sample_outputs": {"type": "object", "additionalProperties": {"type": "integer"}},
             "formula_cells_by_sheet": {"type": "object", "additionalProperties": {"type": "integer"}},
             "table_columns": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "chartsheets": {"type": "integer", "minimum": 0},
+            "formula_cells_without_cached_value": {"type": "integer", "minimum": 0},
+            "array_formula_cells": {"type": "integer", "minimum": 0},
             "data_copy": {"type": "array", "items": {"type": "object", "additionalProperties": {"type": ["string", "integer"]}}}
           },
           "additionalProperties": false

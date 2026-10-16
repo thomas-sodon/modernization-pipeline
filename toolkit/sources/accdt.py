@@ -28,7 +28,7 @@ from pathlib import Path
 
 from toolkit.datamacros import local
 from toolkit.schema import SchemaError, parse_xsd, xml_name
-from toolkit.sources import EncryptedSource, SourceError, decode_text
+from toolkit.sources import EncryptedSource, SourceError, decode_text, xml_row_elements
 from toolkit.sources.access import AccessDesign
 
 DATABASE = "template/database/"
@@ -221,9 +221,7 @@ class AccdtReader:
         if member is None:
             return
         root = ET.fromstring(self.zip.read(member))
-        for row in root:
-            if len(row) == 0:
-                continue
+        for row in xml_row_elements(root):
             yield {xml_name(local(c.tag)): c.text for c in row}
 
     def iter_texts(self):

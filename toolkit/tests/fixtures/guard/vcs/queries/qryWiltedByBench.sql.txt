@@ -1,0 +1,6 @@
+SELECT tblTrays.Bench, Count(tblTrays.TrayKey) AS WiltedTrays, Avg(tblTrays.Sown) AS AverageSown
+FROM tblTrays
+WHERE tblTrays.Wilted = True AND tblTrays.Bench Not Like "QUARANTINE*"
+GROUP BY tblTrays.Bench
+HAVING Count(tblTrays.TrayKey) > 3
+ORDER BY Count(tblTrays.TrayKey) DESC;

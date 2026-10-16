@@ -1,0 +1,6 @@
+TrayKey	Bench	Sown	Note
+1	EAST-POTTING-SHED	48	Synthetic note about basil seedlings on the east bench
+2	WEST-COLD-FRAME	36	Synthetic note about chilli trays in the cold frame
+3	EAST-POTTING-SHED	2024-03-01	12345678
+4	WEST-COLD-FRAME	20	frmTrayBench
+5	WEST-COLD-FRAME	12	TrayBench

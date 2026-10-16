@@ -84,6 +84,19 @@ def test_rows_only_through_iter_rows(tmp_path):
     )
 
 
+def test_xml_table_with_embedded_schema(tmp_path):
+    """A tables/<t>.xml exported with its schema embedded: schema elements are not rows."""
+    export = materialize(tmp_path / "export")
+    (export / "tables" / "tblCustomers.txt").unlink()
+    shutil.copyfile(
+        FIX.parent / "access" / "tblCustomers.sample-embedded.xml",
+        export / "tables" / "tblCustomers.xml",
+    )
+    rows = list(VcsExportReader(export).iter_rows("tblCustomers"))
+    assert len(rows) == 3
+    assert all(set(r) <= {"CustomerID", "CustomerName", "Region"} for r in rows)
+
+
 def test_parse_vcs_export(vcs_eng, capfd, quiet):
     eng, private = vcs_eng()
     out = private / "out" / "model"

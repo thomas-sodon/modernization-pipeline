@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataroot>
+<Orders><OrderID>10</OrderID><CustomerID>1</CustomerID><Weight>0.1</Weight><Ratio>0.30000000000000004</Ratio><Notes>Two lines&#13;
+of notes</Notes><Token>{6F9619FF-8B86-D011-B42D-00C04FC964FF}</Token><Files><FileName>spec.txt</FileName></Files></Orders>
+<Orders><OrderID>11</OrderID><CustomerID>1</CustomerID><Weight>2.5</Weight><Ratio>1E-07</Ratio><Notes>She said "rush"</Notes></Orders>
+<Orders><OrderID>12</OrderID><Notes>\N</Notes></Orders>
+<Orders><OrderID>13</OrderID><CustomerID>3</CustomerID><Weight>-0</Weight><Ratio>1</Ratio><Notes/></Orders>
+</dataroot>

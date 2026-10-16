@@ -146,7 +146,10 @@ Non-data facts the inventory and the health check count: `compiled_only`, `vba_p
 `parts` (design parts per folder and extension), `encodings` (parts per object kind and
 detected encoding), `sample_data_tables`, `data_backends`, `linked_tables` (counts per back-end
 kind); for workbooks `sample_outputs` (file count per declared sample folder, never file names),
-`formula_cells_by_sheet` and `table_columns`; with a data copy, `data_copy` (per-table column
+`formula_cells_by_sheet`, `table_columns`, `chartsheets` (sheets that hold only a chart),
+`formula_cells_without_cached_value` (formula cells the workbook saved with no computed result,
+so a reference run cannot be compared with Excel's own value there) and `array_formula_cells`
+(cells inside array formulas, which the rebuild must write as array formulas); with a data copy, `data_copy` (per-table column
 counts of the comparison).
 
 ### Diagnostics (`diagnostics`)
@@ -226,7 +229,7 @@ anything a scrub would replace remains and names the file and JSON path or line,
 
 | Kind | Read from |
 |---|---|
-| `accdt` | the template's OPC parts: object parts under `template/database/objects/` (SaveAsText in UTF-16LE with a BOM; VBA in cp1252; table XSDs), their metadata parts (object name and type), data-macro and properties `.axl` parts, `relationships.xml`, `vbaReferences.xml` and `databaseProperties.xml`; sample rows (`sampleData/`) only through `iter_rows` |
+| `accdt` | the template's OPC parts: object parts under `template/database/objects/` (SaveAsText in UTF-16LE with a BOM; VBA in cp1252; table XSDs), their metadata parts (object name and type), data-macro and properties `.axl` parts, `relationships.xml`, `vbaReferences.xml` and `databaseProperties.xml`; sample rows (`sampleData/`) only through `iter_rows`, which reads both a bare `dataroot` and the embedded-schema layout (an `xsd:schema` ahead of the `dataroot`; schema elements are never rows) |
 | `vcs-export` | an msaccess-vcs-addin export folder: `forms/`, `reports/`, `modules/`, `queries/`, `macros/`, `tbldefs/`, `tdmacros/`, `relations/` (folder names as the add-in documents them); `tables/` data only through `iter_rows` |
 | `accdb`, `mdb` | the Jackcess bridge of S2.reference (`toolkit.reference.bridge`); until it exists parse exits 2 |
 | `xlsm` | openpyxl for sheets, tables, validations and formulas, the package XML for names, drawings, controls and comments, oletools and olefile for the VBA project |

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/thomas-sodon/modernization-pipeline/toolkit/schemas/dataset.schema.json",
+  "title": "dataset.json of a dataset directory (docs/contracts.md#dataset-directory)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format_version", "name", "kind", "seed", "schema_sha256", "load_order", "tables"],
+  "properties": {
+    "format_version": {"const": 1},
+    "name": {"type": "string", "pattern": "^(engagement|seed-[0-9]+)$"},
+    "kind": {"enum": ["engagement", "synthetic"]},
+    "seed": {"type": ["integer", "null"], "minimum": 0},
+    "schema_sha256": {"$ref": "#/$defs/sha256"},
+    "load_order": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "tables": {"type": "array", "items": {"$ref": "#/$defs/table"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "engagement"}}},
+      "then": {"properties": {"name": {"const": "engagement"}, "seed": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "synthetic"}}},
+      "then": {"properties": {"name": {"pattern": "^seed-[0-9]+$"}, "seed": {"type": "integer"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "type": {
+      "enum": ["text", "memo", "byte", "integer", "longinteger", "autonumber", "single", "double", "currency", "decimal", "datetime", "yesno", "hyperlink", "guid"]
+    },
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "file", "rows", "sha256", "columns", "omitted_columns"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "file": {"type": "string", "pattern": "^tables/[A-Za-z0-9._-]+\\.csv$"},
+        "rows": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type"],
+            "properties": {"name": {"type": "string", "minLength": 1}, "type": {"$ref": "#/$defs/type"}}
+          }
+        },
+        "omitted_columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "reason"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "type": {"type": "string"},
+              "reason": {"enum": ["complex", "oleobject", "computed"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

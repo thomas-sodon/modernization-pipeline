@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataroot>
+<Widget_x0020_Customers><CustomerID>1</CustomerID><Company>Sprocket Supply</Company><Active>1</Active><Balance>12.5000</Balance><Created>2024-03-01T00:00:00</Created><Logo>AAEC</Logo></Widget_x0020_Customers>
+<Widget_x0020_Customers><CustomerID>2</CustomerID><Active>0</Active><Balance>0.0000</Balance><Created>2024-03-02T09:30:00</Created></Widget_x0020_Customers>
+<Widget_x0020_Customers><CustomerID>3</CustomerID><Company>Gear, Cog &amp; Co</Company><Active>true</Active><Balance>-4.25</Balance></Widget_x0020_Customers>
+<Widget_x0020_Customers><CustomerID>4</CustomerID><Company></Company><Balance>1000000.0001</Balance><Created>2024-02-29</Created></Widget_x0020_Customers>
+</dataroot>

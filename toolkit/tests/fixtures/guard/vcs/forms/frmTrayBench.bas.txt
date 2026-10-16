@@ -1,0 +1,34 @@
+Version =21
+VersionRequired =20
+Begin Form
+    Width =7200
+    RecordSource ="SELECT tblTrays.TrayKey, tblTrays.Bench, tblTrays.Sown FROM tblTrays ORDER BY tblTrays.Bench"
+    Caption ="Tray bench overview"
+    OnOpen ="[Event Procedure]"
+    Begin
+        Begin Section
+            Height =3600
+            Name ="Detail"
+            Begin
+                Begin TextBox
+                    Left =1440
+                    Top =360
+                    Width =3600
+                    Height =300
+                    Name ="txtYield"
+                    ControlSource ="=TrayYieldScore([Sprouted],[Sown]) & \" percent of seeds came up\""
+                End
+            End
+        End
+    End
+End
+CodeBehindForm
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Option Compare Database
+
+Private Sub Form_Open(Cancel As Integer)
+    If DCount("*", "tblTrays", "Wilted = True") > 25 Then
+        MsgBox "More than two dozen wilted trays: check the misting schedule first", vbExclamation
+    End If
+End Sub

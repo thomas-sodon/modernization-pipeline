@@ -17,9 +17,10 @@ from openpyxl.chart import BarChart, Reference
 from openpyxl.comments import Comment
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.worksheet.formula import ArrayFormula
 from openpyxl.worksheet.table import Table, TableColumn, TableFormula
 
-from toolkit import cli
+from toolkit import cli, inventory
 from toolkit import model as model_mod
 from toolkit.sources import xlsm as xl
 
@@ -60,7 +61,7 @@ def _table(ws, name, ref, headers, formulas=None):
     ws.add_table(t)
 
 
-def build_workbook(path: Path) -> Path:
+def build_workbook(path: Path, extras: bool = False) -> Path:
     wb = Workbook()
     q = wb.active
     q.title = "Quote"
@@ -121,6 +122,14 @@ def build_workbook(path: Path) -> Path:
 
     wb.defined_names["TaxRate"] = DefinedName("TaxRate", attr_text="Quote!$B$6")
     wb.defined_names["OldRange"] = DefinedName("OldRange", attr_text="#REF!$A$1")
+    if extras:
+        # an array (CSE) formula and a chart sheet, for the persisted facts
+        q["F8"] = ArrayFormula("F8", "=SUM(B4:B5*2)")
+        sheet_chart = BarChart()
+        sheet_chart.add_data(
+            Reference(d, min_col=3, min_row=1, max_row=3), titles_from_data=True
+        )
+        wb.create_chartsheet("QtyChart").add_chart(sheet_chart)
     wb.save(path)
     _add_controls(path)
     return path
@@ -341,8 +350,35 @@ def test_formula_blocks_and_cache_flags(parsed):
         "SalesTable": 4,
     }
     assert facts["sample_outputs"] == {"msg": 0, "pdf": 2}
+    assert facts["chartsheets"] == 0
+    assert facts["formula_cells_without_cached_value"] == 6
+    assert facts["array_formula_cells"] == 0
     names = {d["name"]: d for d in docs["objects"]["defined_names"]}
     assert names["OldRange"]["broken"] is True and names["TaxRate"]["broken"] is False
+
+
+def test_array_formula_and_chartsheet_facts_persist(xlsm_eng, capfd, quiet):
+    eng, private = xlsm_eng
+    build_workbook(private / "sources" / "QuoteBook" / "quote.xlsm", extras=True)
+    out = private / "out" / "model"
+    code, summary = run_parse(capfd, eng, out, "--strict")
+    assert code == 0, summary
+    docs = {s: json.loads((out / f"{s}.json").read_text()) for s in model_mod.FILES}
+    assert model_mod.validate(docs) == []
+    facts = docs["objects"]["facts"]
+    assert facts["chartsheets"] == summary["counts"]["chartsheets"] == 1
+    assert facts["array_formula_cells"] == summary["counts"]["array_formula_cells"] == 1
+    assert (
+        facts["formula_cells_without_cached_value"]
+        == summary["counts"]["formula_cells_without_cached_value"]
+        == 7
+    )
+    # the inventory reads all three from the model; none is reported missing
+    counts, missing = inventory.count("xlsm", docs)
+    assert missing == []
+    assert counts["chartsheets"] == 1
+    assert counts["array_formula_cells"] == 1
+    assert counts["formula_cells_without_cached_value"] == 7
 
 
 def test_layout_labels_and_value_null_positions(parsed):

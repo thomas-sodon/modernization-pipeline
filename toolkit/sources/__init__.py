@@ -58,6 +58,30 @@ def decode_text(data: bytes, default: str = "cp1252") -> tuple[str, str, bool]:
         return data.decode(default, errors="replace"), default, True
 
 
+XSD_NS = "{http://www.w3.org/2001/XMLSchema}"
+
+
+def xml_row_elements(root):
+    """Row elements of an Access XML data export (sampleData parts, export table files).
+
+    Two layouts: a bare <dataroot> whose children are rows, and the embedded-schema export
+    (<root> holding an xsd:schema and then a <dataroot>). Schema elements are never rows."""
+
+    def _local(tag) -> str:
+        return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+    if _local(root.tag) != "dataroot":
+        holder = next((c for c in root if _local(c.tag) == "dataroot"), None)
+        if holder is not None:
+            root = holder
+    for el in root:
+        if not isinstance(el.tag, str) or el.tag.startswith(XSD_NS):
+            continue
+        if _local(el.tag) == "schema" or len(el) == 0:
+            continue
+        yield el
+
+
 def open_reader(eng: dict):
     """The reader for the engagement's source.kind (raises SourceError when missing)."""
     src = eng["source"]

@@ -187,6 +187,27 @@ def test_rows_only_through_iter_rows(tmp_path):
     assert any(kind == "code" and name == "modWidgetMath" for kind, name, _t in texts)
 
 
+def test_iter_rows_skips_embedded_schema(tmp_path):
+    """Access exports with the schema embedded: <root> holds xsd:schema, then <dataroot>."""
+    embedded = (FIX / "access/tblCustomers.sample-embedded.xml").read_bytes()
+    reader = AccdtReader(
+        build_accdt(
+            tmp_path / "e.accdt",
+            extra={OBJ + "sampleData/tblCustomers.xml": embedded},
+        )
+    )
+    rows = list(reader.iter_rows("tblCustomers"))
+    assert len(rows) == 3
+    assert all(set(r) <= {"CustomerID", "CustomerName", "Region"} for r in rows)
+    assert rows[0]["CustomerName"] == "SENTINEL-EMBEDDED-4410"
+    assert "Region" not in rows[1]
+    # the bare-dataroot layout still reads as before
+    assert len(list(reader.iter_rows("tblWidgetOrders"))) == 2
+    texts = list(reader.iter_texts())
+    assert ("data", "tblCustomers", "SENTINEL-EMBEDDED-4410") in texts
+    assert not any(kind == "data" and t == "dataroot" for kind, _n, t in texts)
+
+
 def test_parse_accdt_end_to_end(accdt_eng, tmp_path, capfd, quiet):
     eng, private = accdt_eng()
     out = private / "out" / "model"

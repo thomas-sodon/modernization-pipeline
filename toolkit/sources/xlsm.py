@@ -1002,6 +1002,9 @@ class XlsmReader:
                     s: len(v) for s, v in sorted(per_sheet_formulas.items()) if v
                 },
                 "table_columns": {t["name"]: len(t["columns"]) for t in tables},
+                "chartsheets": counts["chartsheets"],
+                "formula_cells_without_cached_value": no_cache,
+                "array_formula_cells": array_cells,
             },
         }
         code = {m["name"]: vba.normalize(modules_code[m["name"]]) for m in modules}

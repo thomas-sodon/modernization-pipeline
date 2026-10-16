@@ -32,7 +32,7 @@ from pathlib import Path
 
 from toolkit.datamacros import local
 from toolkit.schema import SchemaError, parse_xsd
-from toolkit.sources import SourceError, decode_text
+from toolkit.sources import SourceError, decode_text, xml_row_elements
 from toolkit.sources.access import AccessDesign
 
 KNOWN = (
@@ -101,9 +101,8 @@ class VcsExportReader:
                 yield dict(zip(header, row))
         elif xml.is_file():
             root = ET.fromstring(xml.read_bytes())
-            for row in root:
-                if len(row):
-                    yield {local(c.tag): c.text for c in row}
+            for row in xml_row_elements(root):
+                yield {local(c.tag): c.text for c in row}
 
     def iter_texts(self):
         for table in sorted({p.stem for p in self._files("tables", ".txt", ".xml")}):
