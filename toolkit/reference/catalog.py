@@ -16,7 +16,8 @@ Reads only the design zone (`<private>/out/model/`) and the committed app-functi
 - a unit reading an unsupported unit is unsupported with that reason, one reading a needs-params
   unit is needs-params with its params;
 - `needs_access_confirmation`: the SQL calls Format, FormatDateTime, DateValue, CDate, DatePart,
-  DateDiff, DateAdd, Weekday, MonthName or an app function.
+  DateDiff, DateAdd, Weekday, MonthName or an app function, or Nz without a default (Access's
+  query-context Empty), or reads a unit that calls Nz without a default.
 """
 
 from __future__ import annotations
@@ -435,6 +436,75 @@ def engine_compat(sql: str) -> tuple[str, int]:
     return sql, made
 
 
+# ------------------------------------------------------------------ Nz on the engine
+#
+# UCanAccess 5.1.8 implements Nz as overloaded HSQLDB functions (MEMO, DOUBLE, LONG, NUMERIC):
+# a currency or decimal argument is converted to NUMERIC with scale 0 (Nz(12.34) gives 12) and
+# Nz(x, 0) to DOUBLE. The engine therefore runs every Nz whose value is not text as COALESCE,
+# which HSQLDB types from its arguments, so a non-null argument comes back unchanged:
+#
+# - Nz(x, d) -> COALESCE(x, d), unless x is text or d is a string literal (UCanAccess's MEMO
+#   overload is exact for those);
+# - Nz(x) (no default) follows Access's query context: the null value is Empty, which counts as
+#   0 inside arithmetic and ends up as a zero-length string as a column value. As an operand of
+#   + - * / \ ^ or Mod it becomes COALESCE(x, 0); elsewhere a text x keeps UCanAccess's Nz (which
+#   returns '' for Null) and any other x is returned unchanged (Null stays Null, since a typed
+#   engine cannot return '' in a number column). Units with Nz(x) are needs_access_confirmation.
+#
+# The catalog's sql/ files keep the Access SQL; the engine applies this when it runs a unit.
+
+_ARITH_BEFORE = re.compile(r"(?:[-+*/\\^]|\bMod)[\s(]*$", re.IGNORECASE)
+_ARITH_AFTER = re.compile(r"^[\s)]*(?:[-+*/\\^]|Mod\b)", re.IGNORECASE)
+_STRING_LITERAL = re.compile(r"\s*(?:\"(?:[^\"]|\"\")*\"|'(?:[^']|'')*')\s*", re.DOTALL)
+_COLUMN_REF = re.compile(rf"\s*(?:({_SEG})\s*\.\s*)?({_SEG})\s*")
+
+
+def nz_without_default(sql: str) -> bool:
+    """True when `sql` calls Nz with one argument (Access query-context semantics apply)."""
+    return any(c[0].lower() == "nz" and len(c[3]) == 1 for c in calls(sql or ""))
+
+
+def column_ref(expr: str) -> tuple[str | None, str] | None:
+    """(table or None, column) when `expr` is a bare column reference, else None."""
+    text = expr.strip()
+    while text.startswith("(") and text.endswith(")") and "(" not in text[1:-1]:
+        text = text[1:-1].strip()
+    m = _COLUMN_REF.fullmatch(text)
+    if not m:
+        return None
+    return (_unbracket(m.group(1)) if m.group(1) else None), _unbracket(m.group(2))
+
+
+def nz_for_engine(sql: str, is_text=lambda expr: None) -> tuple[str, int]:
+    """`sql` with every Nz call that UCanAccess would round written as COALESCE (see above).
+    `is_text(expr)` says whether an argument is text (True), not text (False) or unknown (None).
+    Returns (sql, calls rewritten)."""
+    found = [c for c in calls(sql) if c[0].lower() == "nz" and 1 <= len(c[3]) <= 2]
+    top = [c for c in found if not any(o[1] < c[1] and c[2] <= o[2] for o in found)]
+    made = 0
+    for name, start, end, args in sorted(top, key=lambda c: -c[1]):
+        inner = []
+        for arg in args:
+            text, n = nz_for_engine(arg, is_text)
+            inner.append(text)
+            made += n
+        kind = is_text(args[0])
+        if kind is True or (len(args) == 2 and _STRING_LITERAL.fullmatch(args[1])):
+            repl = name + "(" + ", ".join(inner) + ")"
+        elif len(args) == 2:
+            repl = f"COALESCE({inner[0]}, {inner[1]})"
+            made += 1
+        else:
+            masked = mask(sql)
+            if _ARITH_BEFORE.search(masked[:start]) or _ARITH_AFTER.match(masked[end:]):
+                repl = f"COALESCE({inner[0]}, 0)"
+            else:
+                repl = f"({inner[0]})"
+            made += 1
+        sql = sql[:start] + repl + sql[end:]
+    return sql, made
+
+
 # ------------------------------------------------------------------ catalog
 
 
@@ -508,6 +578,7 @@ def build(
     units: dict[str, dict] = {}
     sqls: dict[str, str] = {}
     direct: dict[str, list[str]] = {}
+    nz_units: set[str] = set()
     for n, q in enumerate(queries, start=1):
         qid = q["name"]
         status, reason, sql = qbe.query_sql(q, n)
@@ -595,9 +666,15 @@ def build(
             "status": status,
             "reason": reason,
             "needs_access_confirmation": bool(app_functions)
-            or (bool(sql) and _confirm(sql)),
+            or (bool(sql) and (_confirm(sql) or nz_without_default(sql))),
         }
         sqls[qid] = sql
+        if sql and nz_without_default(sql):
+            nz_units.add(qid)
+            messages.append(
+                f"{qid}: Nz without a default (Access query-context semantics: "
+                "Empty is 0 in arithmetic, a zero-length string as a value)"
+            )
 
     order = _order(units, direct)
     position = {u: i for i, u in enumerate(order)}
@@ -609,6 +686,9 @@ def build(
             deps |= set(units[d]["depends_on"])
         deps.discard(qid)
         unit["depends_on"] = sorted(deps, key=lambda d: position[d])
+        if any(d in nz_units for d in unit["depends_on"]):
+            # a value it reads carries the same Nz semantics
+            unit["needs_access_confirmation"] = True
         if unit["status"] == "unsupported":
             continue
         for d in unit["depends_on"]:

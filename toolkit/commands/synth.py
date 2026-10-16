@@ -14,8 +14,13 @@ Each seed directory is built in a temporary directory next to it, validated, and
 temporary directory, compares it byte for byte with `seed-N/input` and exits 1 on any
 difference, writing nothing. The bytes depend on the pinned Faker version.
 
+Each `seed-N/input` holds a `.gitattributes` (`* -text`, synth.GITATTRIBUTES): the CSVs end
+records in CRLF and some seed-2 fields hold CR LF, so git must store them byte-exact or a clone
+fails `dataset validate` and `--check`. `--check` compares that file too.
+
 The summary names the lookup columns whose codes were generated (copy_values true, but neither
-the model nor rules.json lookups[].values holds codes) and those that took rules.json values.
+the model nor rules.json lookups[].values holds codes) and those that took rules.json values. It also
+names the key-value columns whose rows hold typed values because the code converts them per key.
 """
 
 from __future__ import annotations
@@ -116,6 +121,7 @@ def run(args) -> int:
     }
     messages = [f"generated codes: {name}" for name in plan.generated]
     messages += [f"codes from rules.json values: {name}" for name in plan.from_rules]
+    messages += [f"typed values per key: {name}" for name in plan.typed]
 
     if args.check:
         tmp = Path(tempfile.mkdtemp(prefix="synth-check-"))

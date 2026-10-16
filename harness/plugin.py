@@ -139,8 +139,62 @@ def prepare_environment(options, cwd, environ=None) -> None:
         environ.setdefault("DJANGO_SETTINGS_MODULE", str(config["settings"]))
 
 
+def redacting(options, environ=None) -> bool:
+    """Whether a run with these options redacts: the runner is active and the dataset is the
+    engagement's, or EQUIVALENCE_REDACT=1."""
+    environ = os.environ if environ is None else environ
+    if not getattr(options, "eq_adapter", None):
+        return False
+    return (
+        getattr(options, "eq_dataset", None) == "engagement"
+        or environ.get("EQUIVALENCE_REDACT") == "1"
+    )
+
+
+def _ini(getini, name):
+    try:
+        return getini(name)
+    except (ValueError, KeyError):
+        return None
+
+
+def uncaptured_outputs(options, getini) -> list[str]:
+    """The options of this run that send output past pytest's capture (and so past redaction):
+    no capture, tee-sys, live logging, a log file, the debugger and the debug log."""
+    found = []
+    if getattr(options, "capture", None) in ("no", "tee-sys"):
+        found.append(f"--capture={options.capture} (-s)")
+    if getattr(options, "log_cli_level", None) is not None:
+        found.append("--log-cli-level")
+    if str(_ini(getini, "log_cli") or "").strip().lower() in ("1", "true", "yes", "on"):
+        found.append("log_cli")
+    if getattr(options, "log_file", None) or _ini(getini, "log_file"):
+        found.append("--log-file / log_file")
+    if getattr(options, "usepdb", False) or getattr(options, "trace", False):
+        found.append("--pdb / --trace")
+    if getattr(options, "debug", None):
+        found.append("--debug")
+    return found
+
+
+def refuse_uncaptured_output(options, getini, environ=None) -> None:
+    """Redacted runs refuse every output path that skips pytest's capture: a value printed or
+    logged by the adapter or the app would otherwise reach the terminal or a file outside
+    $EQUIVALENCE_PRIVATE/logs/."""
+    if not redacting(options, environ):
+        return
+    found = uncaptured_outputs(options, getini)
+    if found:
+        raise pytest.UsageError(
+            "redacted runs refuse output that skips capture: "
+            + ", ".join(found)
+            + " (details of a redacted run go only to $EQUIVALENCE_PRIVATE/logs/)"
+        )
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_load_initial_conftests(early_config, parser, args):
+    refuse_uncaptured_output(early_config.known_args_namespace, early_config.getini)
     prepare_environment(
         early_config.known_args_namespace, early_config.invocation_params.dir
     )
@@ -150,6 +204,8 @@ def pytest_load_initial_conftests(early_config, parser, args):
 def pytest_configure(config):
     if not config.getoption("eq_adapter", default=None):
         return
+    # again on the final options, for a plugin loaded after the initial conftests
+    refuse_uncaptured_output(config.option, config.getini)
     if config.getoption("force_regen", default=False) or config.getoption(
         "regen_all", default=False
     ):

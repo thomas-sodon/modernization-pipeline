@@ -9,7 +9,8 @@ dataset, canonicalises the results with `harness.canonical` and writes:
   needs_access_confirmation, canonical_version and per dataset status, reason, rows and digest
   (hmac-sha256 for the engagement, sha256 for seeds). No values.
 - `<target>/goldens/params.json`: parameter definitions and the seed values.
-- `<target>/goldens/synthetic/seed-N/expected/<file-safe id>.csv|json`: seed outputs in full.
+- `<target>/goldens/synthetic/seed-N/expected/<file-safe id>.csv|json`: seed outputs in full,
+  next to a `.gitattributes` (`* -text`) so git stores them byte-exact.
 - `<private>/goldens/engagement/<file-safe id>.csv|json` and `<private>/goldens/params.json`:
   engagement outputs and parameter values (data zone, only through mp-data).
 
@@ -34,6 +35,15 @@ STATUSES = ("ok", "empty", "needs-params", "unsupported")
 MAX_TRIES = 20
 UNIT_OBJECT_TYPES = ("query", "calculated_column", "formula_block")
 KEY_TYPES = canon.INT_TYPES
+# Seed expected files are byte-exact canonical output (CSV records end in CRLF, and a text field
+# may hold CR or LF). A repository rule such as `* text=auto eol=lf` makes git store them with
+# LF, so a checkout no longer matches its manifest digest. Each expected directory carries this
+# attribute file, which turns git's line-end conversion off for the files in it.
+GITATTRIBUTES = (
+    b"# Written by golden record: canonical outputs are byte-exact (CSV records end in CRLF),\n"
+    b"# so git must store them unchanged. Do not edit.\n"
+    b"* -text\n"
+)
 NUMBER_TYPES = canon.NUMERIC_TYPES
 
 
@@ -817,6 +827,8 @@ def write_public(rec: Recording, target: Path) -> list[Path]:
         if not d.is_relative_to(goldens):
             continue
         d.mkdir(parents=True, exist_ok=True)
+        if _write(d / ".gitattributes", GITATTRIBUTES):
+            written.append(d / ".gitattributes")
         wanted = {p for p in rec.files if p.parent == d}
         for stale in _golden_files(d) - wanted:
             stale.unlink()
@@ -876,6 +888,11 @@ def check_public(rec: Recording, target: Path) -> list[str]:
         if d.is_relative_to(goldens):
             wanted = {p: b for p, b in rec.files.items() if p.parent == d}
             diffs += _dir_diff(d, wanted, d.parent.name)
+            attrs = d / ".gitattributes"
+            if not attrs.is_file():
+                diffs.append(f"{d.parent.name}: .gitattributes missing")
+            elif attrs.read_bytes() != GITATTRIBUTES:
+                diffs.append(f"{d.parent.name}: .gitattributes differs")
     return diffs
 
 

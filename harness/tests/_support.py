@@ -24,6 +24,7 @@ KEY = bytes(range(32))
 
 STUB = '''"""Stub adapter for harness tests (synthetic)."""
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -52,6 +53,9 @@ class StubAdapter:
         if text:
             print(text)
             print(text, file=sys.stderr)
+        logged = CONFIG.get("log", {}).get(unit_id)
+        if logged:
+            logging.getLogger("stub_app").warning(logged)
         if unit_id in CONFIG.get("not_implemented", []):
             raise NotImplementedUnit(unit_id)
         if unit_id in CONFIG.get("raise", {}):

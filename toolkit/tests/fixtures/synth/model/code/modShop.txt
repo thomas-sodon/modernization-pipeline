@@ -21,3 +21,17 @@ Public Sub MarkRush(ByVal lngOrderID As Long)
 40      If Me.KindID = enumKind.kTrade Then MsgBox "Trade customer"
 50      If Err.Description = "Widget not found" Then Exit Sub
 End Sub
+
+Public Function GetSetting(ByVal lngID As enumSettings) As Variant
+        Dim v As Variant
+10      v = DLookup("SettingValue", "Settings", "SettingID = " & lngID)
+20      Select Case lngID
+            Case enumSettings.stTaxRate
+30              v = CSng(v / 1000)   ' a whole number of thousandths
+            Case stLastRun
+40              v = CDate(v)
+            Case Else
+50              v = Null
+60      End Select
+70      GetSetting = v
+End Function

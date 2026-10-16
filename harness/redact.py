@@ -7,7 +7,10 @@ captured sections, so no value reaches the terminal, the JUnit file or the toolk
 A skip keeps its reason only when it is `not-implemented: <unit>`.
 
 The plugin also turns off warning capture for redacted runs (a warning message may quote values)
-and runs with `-p no:cacheprovider`.
+and runs with `-p no:cacheprovider`. Before any conftest loads, it refuses (usage error, exit 4)
+every option of a redacted run that sends output past pytest's capture: `-s` / `--capture=no`,
+`--capture=tee-sys`, live logging (`log_cli` in an ini file, `-o log_cli=true`,
+`--log-cli-level`), a log file (`--log-file`, `log_file`), `--pdb` / `--trace` and `--debug`.
 """
 
 from __future__ import annotations

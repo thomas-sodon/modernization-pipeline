@@ -10,6 +10,10 @@ therefore resolve the same way in a database built from a dataset (which has no 
 and in a copy of a back end that lacks them; a view of the same name that UCanAccess loaded from
 the file itself is replaced by the catalog's version.
 
+UCanAccess's Nz rounds currency and decimal arguments (its NUMERIC overload has scale 0), so every
+view and statement first goes through `catalog.nz_for_engine`, which writes such calls as
+COALESCE; column kinds (text or not) come from the HSQLDB mirror's INFORMATION_SCHEMA.
+
 Units with parameters run with values bound as literals (PARAMETERS clause removed, `[name]` or
 `Forms!frm!ctl` replaced); their parameterised dependencies are created as views with the same
 values for that run. Errors carry the Java exception class only, never values.
@@ -104,6 +108,11 @@ def _clean(sql: str) -> str:
     return sql.strip().rstrip(";").strip()
 
 
+def _key(name: str) -> str:
+    """A table or column name compared across Access and UCanAccess's escaped HSQLDB names."""
+    return re.sub(r"[^A-Z0-9]", "", name.upper())
+
+
 # ------------------------------------------------------------------ types
 
 _JDBC_TYPES = {
@@ -154,6 +163,7 @@ class AccessReference:
         self.view_errors: dict[str, str] = {}
         self._names: dict[str, str] | None = None
         self._schema_types: dict[str, str] | None = None
+        self._kinds: dict[tuple[str, str], bool] | None = None
 
     # ---- lifecycle
     def open(self) -> AccessReference:
@@ -209,6 +219,53 @@ class AccessReference:
         conv = bridge.jclass("net.ucanaccess.converters.SQLConverter")
         return str(conv.completeEscaping(name, False))
 
+    def _column_kinds(self) -> dict[tuple[str, str], bool]:
+        """{(table key, column key): is text} of every table and view of the HSQLDB mirror."""
+        if self._kinds is None:
+            rs = (
+                self._hsql()
+                .createStatement()
+                .executeQuery(
+                    "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS"
+                    " WHERE TABLE_SCHEMA = 'PUBLIC'"
+                )
+            )
+            kinds: dict[tuple[str, str], bool] = {}
+            while rs.next():
+                dtype = str(rs.getString(3)).upper()
+                kinds[(_key(str(rs.getString(1))), _key(str(rs.getString(2))))] = (
+                    "CHAR" in dtype or "CLOB" in dtype
+                )
+            rs.close()
+            self._kinds = kinds
+        return self._kinds
+
+    def _is_text(self, sql: str, expr: str) -> bool | None:
+        """Whether `expr` (an Nz argument in `sql`) is a text column; None when unknown."""
+        ref = cat.column_ref(expr)
+        if ref is None:
+            return None
+        table, column = ref
+        kinds = self._column_kinds()
+        if table is not None:
+            for m in re.finditer(
+                rf"({cat._SEG})\s+AS\s+({cat._SEG})",
+                cat.mask(sql, brackets=False),
+                re.IGNORECASE,
+            ):
+                if cat._unbracket(sql[m.start(2) : m.end(2)]).lower() == table.lower():
+                    table = cat._unbracket(sql[m.start(1) : m.end(1)])
+                    break
+            found = kinds.get((_key(table), _key(column)))
+            if found is not None:
+                return found
+        seen = {v for (_t, c), v in kinds.items() if c == _key(column)}
+        return seen.pop() if len(seen) == 1 else None
+
+    def engine_sql(self, sql: str) -> str:
+        """Access SQL as the engine runs it: Nz written so UCanAccess does not round it."""
+        return cat.nz_for_engine(sql, lambda expr: self._is_text(sql, expr))[0]
+
     def _create_view(self, name: str, sql: str, replace: bool) -> None:
         conv = bridge.jclass("net.ucanaccess.converters.SQLConverter")
         escaped = self._view_name(name)
@@ -216,11 +273,14 @@ class AccessReference:
             st = self._hsql().createStatement()
             st.execute(f"DROP VIEW {escaped} IF EXISTS CASCADE")
             st.close()
-        text = f"CREATE VIEW {escaped} AS {_clean(cat.strip_parameters(sql))}"
+            self._kinds = None
+        body = self.engine_sql(_clean(cat.strip_parameters(sql)))
+        text = f"CREATE VIEW {escaped} AS {body}"
         converted = _clean(str(conv.convertSQL(text, True).getSql()))
         st = self._hsql().createStatement()
         st.execute(converted)
         st.close()
+        self._kinds = None
 
     def create_views(self) -> dict[str, str]:
         """Create every ok unit as a view, in dependency order. Returns {unit id: Java exception
@@ -258,7 +318,7 @@ class AccessReference:
                     self._create_view(
                         d, bind(self.sql(d), dep["params"], values or {}), replace=True
                     )
-        return _clean(sql)
+        return self.engine_sql(_clean(sql))
 
     def runnable(self, unit_id: str, values: dict | None) -> bool:
         unit = self.units[unit_id]

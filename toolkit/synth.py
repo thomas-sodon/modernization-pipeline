@@ -29,6 +29,10 @@ How values are chosen:
   validation rule allow, maximum text length, the window's first and last second) and non-ASCII
   text. Seed 3 adds duplicates in columns outside every unique constraint and many children for
   the first parents.
+- Key-value settings: when the code looks a text value up by its key and converts it per key
+  (`Literals.typed_values`: a number, a whole number of n-ths, a date or a yes/no), those rows
+  hold a value the conversion accepts on every seed (never NULL or free text), so the app and
+  the reference logic can parse them.
 """
 
 from __future__ import annotations
@@ -54,6 +58,16 @@ ROWS = 50
 GENERATED_CODES = 5
 WINDOW_START = dt.date(2023, 1, 1)
 WINDOW_END = dt.date(2025, 12, 31)
+# Each seed directory carries this .gitattributes: the CSVs end records in CRLF (RFC 4180), some
+# seed-2 text holds CR LF inside a field, and dataset.json records the sha256 of those bytes, so
+# git must store the files unchanged whatever the repository's text and eol settings are.
+GITATTRIBUTES_NAME = ".gitattributes"
+GITATTRIBUTES = (
+    b"# Written by synth: dataset files are byte-exact (CSV records end in CRLF, some fields\n"
+    b"# hold CR LF) and dataset.json holds their sha256, so git must store them unchanged.\n"
+    b"# Do not edit.\n"
+    b"* -text\n"
+)
 MAX_ATTEMPTS = 200
 PLAIN_ATTEMPTS = (
     3  # attempts after which a row is generated without specials, skew or duplicates
@@ -311,6 +325,38 @@ def parse_enums(code: dict) -> dict:
     return enums
 
 
+_PROC_START = re.compile(
+    r"^\s*(?:(?:Public|Private|Friend|Static)\s+)*(?:Function|Sub|Property\s+Get)\s+\w+",
+    re.IGNORECASE,
+)
+_PROC_END = re.compile(r"^\s*End\s+(?:Function|Sub|Property)\b", re.IGNORECASE)
+_DLOOKUP = re.compile(
+    r"DLookup\s*\(\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*,\s*\"\s*(\[[^\]]+\]|[A-Za-z_]\w*)\s*=",
+    re.IGNORECASE,
+)
+_CASE = re.compile(r"^\s*(?:\d+\s+)?Case\s+(.*)$", re.IGNORECASE)
+_END_SELECT = re.compile(r"^\s*(?:\d+\s+)?End\s+Select\b", re.IGNORECASE)
+_TO_NUMBER = re.compile(r"(?i)\b(?:CSng|CDbl|CCur|CDec|CInt|CLng|Val)\s*\(")
+
+
+def _procedures(text: str) -> list[list[str]]:
+    """The comment-free lines of each procedure in a VBA module."""
+    procs: list[list[str]] = []
+    cur: list[str] | None = None
+    for raw in text.splitlines():
+        line = strip_comment(raw)
+        if cur is None:
+            if _PROC_START.match(line):
+                cur = [line]
+            continue
+        if _PROC_END.match(line):
+            procs.append(cur)
+            cur = None
+            continue
+        cur.append(line)
+    return procs
+
+
 def _unbracket(name: str) -> str:
     return name[1:-1] if name.startswith("[") and name.endswith("]") else name
 
@@ -564,6 +610,79 @@ class Literals:
                     out.append((tname, c["name"]))
         return out
 
+    def typed_values(self) -> dict:
+        """Key-value tables whose text value the code converts per key.
+
+        A procedure that looks a value column up by its key column (`DLookup("<value>",
+        "<table>", "<key> = " & x)`) and then converts it in a `Select Case` per key (CSng, CDbl,
+        CCur, CDec, CInt, CLng or Val: number, with `/ n` a whole number of n-ths; CDate: date;
+        CBool: yes/no) gives {(table, value column): {"key": key column, "kinds": {key code:
+        (kind, divisor)}}}. Those rows then hold values the conversion accepts in every seed.
+        """
+        out: dict = {}
+        for module in sorted(self.design.code):
+            for proc in _procedures(self.design.code[module]):
+                found = None
+                for line in proc:
+                    found = _DLOOKUP.search(line)
+                    if found:
+                        break
+                if found is None:
+                    continue
+                vcol, tname, kcol = (_unbracket(found.group(i).strip()) for i in (1, 2, 3))
+                table = self.by_lower_table.get(tname.lower())
+                if table is None:
+                    continue
+                names = {
+                    c["name"].lower(): c["name"]
+                    for c in self.tables[table].get("columns") or []
+                }
+                vcol, kcol = names.get(vcol.lower()), names.get(kcol.lower())
+                if vcol is None or kcol is None:
+                    continue
+                kinds = self._case_kinds(proc)
+                if kinds:
+                    slot = out.setdefault((table, vcol), {"key": kcol, "kinds": {}})
+                    for code, kind in kinds.items():
+                        slot["kinds"].setdefault(code, kind)
+        return out
+
+    def _case_kinds(self, proc: list[str]) -> dict:
+        kinds: dict = {}
+        current: list | None = None
+        for line in proc:
+            if _END_SELECT.match(line):
+                current = None
+                continue
+            m = _CASE.match(line)
+            if m:
+                body = m.group(1).strip()
+                if body.lower().startswith("else"):
+                    current = None
+                    continue
+                current = []
+                for item in _split_list(body):
+                    tok = self.token(item, True)
+                    if tok and tok[0] == "enum":
+                        current.append(tok[2])
+                    elif tok and tok[0] == "num" and re.fullmatch(r"-?\d+", tok[1]):
+                        current.append(int(tok[1]))
+                continue
+            if not current:
+                continue
+            kind = None
+            if _TO_NUMBER.search(line):
+                d = re.search(r"/\s*(\d+)\b", line)
+                kind = ("number", int(d.group(1)) if d else None)
+            elif re.search(r"(?i)\bCDate\s*\(", line):
+                kind = ("date", None)
+            elif re.search(r"(?i)\bCBool\s*\(", line):
+                kind = ("bool", None)
+            if kind:
+                for code in current:
+                    kinds.setdefault(code, kind)
+        return kinds
+
     def raw(self, key) -> list[tuple]:
         """Every token for a column, enum members included, in a stable order."""
         toks = list(self.tokens.get(key, []))
@@ -696,6 +815,8 @@ class TablePlan:
     codes: list | None = None  # lookup table: key values, one row each
     pools: dict = field(default_factory=dict)  # column -> fixed code list (copy_values)
     extras: dict = field(default_factory=dict)  # column -> model literals
+    # value column -> (key column, {formatted key: (kind, divisor)}): converted per key in code
+    typed: dict = field(default_factory=dict)
 
     def col(self, name: str) -> Col:
         for c in self.cols:
@@ -711,6 +832,7 @@ class Plan:
     generated: list  # "Table.Column" whose codes were generated
     from_rules: list  # "Table.Column" whose codes came from rules.json lookups[].values
     schema_sha256: str
+    typed: list = field(default_factory=list)  # "Table.Column" holding typed values per key
 
 
 def _sha_int(*parts) -> int:
@@ -861,6 +983,8 @@ def make_plan(design: Design, rows: int = ROWS) -> Plan:
         else:
             pools[(t, c)] = codes
 
+    typed_all = lits.typed_values()
+    typed_names = []
     tables = {}
     for name in order:
         st = stables[name]
@@ -906,6 +1030,20 @@ def make_plan(design: Design, rows: int = ROWS) -> Plan:
             extra = tokens_for([(name, col.name)], col)
             if extra:
                 tp.extras[col.name] = extra
+        for (tname, vname), spec in sorted(typed_all.items()):
+            if tname != name or vname not in cols[name] or spec["key"] not in cols[name]:
+                continue
+            if cols[name][vname].type not in TEXT_TYPES:
+                continue
+            kcol = cols[name][spec["key"]]
+            kinds = {
+                _keyval(kcol, code): kind
+                for code, kind in spec["kinds"].items()
+                if coerce(kcol, ("num", str(code))) is not None
+            }
+            if kinds:
+                tp.typed[vname] = (spec["key"], kinds)
+                typed_names.append(f"{name}.{vname}")
         tables[name] = tp
     return Plan(
         order=order,
@@ -913,6 +1051,7 @@ def make_plan(design: Design, rows: int = ROWS) -> Plan:
         generated=generated,
         from_rules=from_rules,
         schema_sha256=design.schema_sha256,
+        typed=typed_names,
     )
 
 
@@ -1410,7 +1549,40 @@ class TableGen:
             values = self.fk_value(gi, i, attempt, row)
             for c, v in zip(from_cols, values):
                 row.setdefault(c, v)
+        for vname, (kname, kinds) in tp.typed.items():
+            key = row.get(kname)
+            key = None if key is None else _keyval(self.states[kname].col, key)
+            kind = kinds.get(key)
+            if kind is not None:
+                row[vname] = self.typed_value(self.states[vname].col, kind, key, kinds)
         return {c.name: row.get(c.name) for c in tp.cols}
+
+    def typed_value(self, col: Col, kind: tuple, key: str, kinds: dict) -> str:
+        """A value the code converts without error: never NULL, empty or free text."""
+        what, divisor = kind
+        seed = self.seed
+        is_first = key == min(k for k, v in kinds.items() if v == kind)
+        # seed 3 repeats one value across keys of the same kind
+        rng = _rng(seed, self.tp.name, col.name, "typed", *(kind if seed == 3 else (key,)))
+        if what == "number":
+            if divisor:
+                if seed == 2 and is_first:
+                    v = "0"
+                else:
+                    v = str(rng.randint(1, max(1, divisor // 5)))
+            else:
+                v = str(Decimal(rng.randint(0 if seed == 2 else 1, 2000)) / 10000)
+        elif what == "date":
+            if seed == 2:
+                d = WINDOW_END if is_first else WINDOW_START
+            else:
+                d = WINDOW_START + dt.timedelta(
+                    days=rng.randint(0, (WINDOW_END - WINDOW_START).days)
+                )
+            v = d.isoformat()
+        else:
+            v = "0" if seed == 2 else rng.choice(["-1", "0"]) if seed == 1 else "-1"
+        return _clip(v, col.size)
 
     def run(self) -> list[dict]:
         tp = self.tp
@@ -1489,7 +1661,12 @@ def generate(plan: Plan, seed: int) -> SeedResult:
 
 
 def write_seed(plan: Plan, seed: int, directory) -> dict:
-    """Write one seed as a dataset directory; returns its dataset.json and the skipped rows."""
+    """Write one seed as a dataset directory; returns its dataset.json and the skipped rows.
+
+    The directory also gets GITATTRIBUTES (`* -text`), so a clone holds the same bytes.
+    """
     result = generate(plan, seed)
-    doc = ds.write_dataset(Path(directory), result.meta, result.tables)
+    directory = Path(directory)
+    doc = ds.write_dataset(directory, result.meta, result.tables)
+    (directory / GITATTRIBUTES_NAME).write_bytes(GITATTRIBUTES)
     return {"doc": doc, "skipped": result.skipped}

@@ -11,7 +11,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import shutil
+import subprocess
 from pathlib import Path
 from typing import ClassVar
 
@@ -310,7 +312,13 @@ def test_record_seeds_writes_manifest_params_and_expected(eng, capfd):
     assert "engagement" not in u["datasets"]
     assert sorted(
         p.name for p in (target / "goldens/synthetic/seed-1/expected").iterdir()
-    ) == ["qByCustomer.csv", "qEmpty.csv", "qOrders.csv", "qOrphan.csv"]
+    ) == [
+        ".gitattributes",
+        "qByCustomer.csv",
+        "qEmpty.csv",
+        "qOrders.csv",
+        "qOrphan.csv",
+    ]
 
 
 def test_needs_params_reason_other_when_no_value_works(eng, capfd, monkeypatch):
@@ -486,6 +494,57 @@ def test_stale_expected_files_and_dropped_units_are_removed(eng, capfd):
     assert record(capfd, eng, "--dataset", "seeds")[0] == 0
     assert "qEmpty" not in manifest(eng)["units"]
     assert not (target / "goldens/synthetic/seed-1/expected/qEmpty.csv").exists()
+
+
+def _git(cwd: Path, *args: str) -> bytes:
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": str(cwd),
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+    }
+    return subprocess.run(
+        ["git", "-c", "core.autocrlf=false", *args],
+        cwd=cwd,
+        env=env,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_expected_files_survive_a_repo_that_normalizes_line_ends(eng, capfd):
+    """A target repo with `* text=auto eol=lf` must still store the CRLF canonical files
+    byte-exact, so a checkout matches the manifest digests and `--check`."""
+    _p, target = paths(eng)
+    repo = target.parent
+    _git(repo, "init", "-q")
+    (repo / ".gitattributes").write_bytes(b"* text=auto eol=lf\n")
+    assert record(capfd, eng, "--dataset", "seeds")[0] == 0
+    expected = target / "goldens/synthetic/seed-1/expected"
+    assert (expected / ".gitattributes").read_bytes() == gl.GITATTRIBUTES
+    m = manifest(eng)
+    for uid, unit in m["units"].items():
+        entry = unit["datasets"]["seed-1"]
+        if "expected" not in entry:
+            continue
+        f = target / "goldens" / entry["expected"]
+        rel = str(f.relative_to(repo))
+        assert b"\r\n" in f.read_bytes()
+        blob = _git(repo, "hash-object", "--path", rel, str(f)).strip()
+        raw = _git(repo, "hash-object", "--no-filters", str(f)).strip()
+        assert blob == raw, f"git would rewrite {uid}"
+        attrs = _git(repo, "check-attr", "text", "--", rel).decode()
+        assert attrs.strip().endswith("text: unset"), attrs
+    # without the attribute file git would convert them, and --check names it
+    (expected / ".gitattributes").unlink()
+    f = expected / "qOrders.csv"
+    rel = str(f.relative_to(repo))
+    converted = _git(repo, "hash-object", "--path", rel, str(f)).strip()
+    assert converted != _git(repo, "hash-object", "--no-filters", str(f)).strip()
+    code, summary = record(capfd, eng, "--dataset", "seeds", "--check")
+    assert code == 1
+    assert "seed-1: .gitattributes missing" in summary["messages"]
 
 
 def test_a_unit_failure_exits_1_and_writes_nothing(eng, capfd, monkeypatch):

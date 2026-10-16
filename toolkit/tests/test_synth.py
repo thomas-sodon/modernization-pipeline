@@ -179,6 +179,65 @@ def test_check_fails_when_a_seed_is_missing(tmp_path, make_engagement, quiet, ca
     assert not (out / "seed-3").exists()
 
 
+@pytest.mark.parametrize("damage", ["missing", "eol"])
+def test_check_covers_the_gitattributes(tmp_path, make_engagement, quiet, capfd, damage):
+    eng, _e, out = setup_engagement(tmp_path, make_engagement)
+    code, _s = run(capfd, "synth", eng, "--seeds", "1,2,3", "--out", str(out))
+    assert code == 0
+    for seed in SEEDS:
+        attrs = out / f"seed-{seed}" / "input" / ".gitattributes"
+        assert attrs.read_bytes() == synth.GITATTRIBUTES
+    attrs = out / "seed-1" / "input" / ".gitattributes"
+    if damage == "missing":
+        attrs.unlink()
+    else:
+        attrs.write_bytes(b"* text=auto eol=lf\n")
+    code, summary = run(
+        capfd, "synth", eng, "--seeds", "1,2,3", "--out", str(out), "--check"
+    )
+    assert code == 1
+    assert "seed-1/input/.gitattributes" in summary["messages"]
+
+
+def _git(repo: Path, *argv) -> bytes:
+    return subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+         "-c", "core.autocrlf=false", "-c", "init.defaultBranch=main", *argv],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def _committed_tree(tmp_path: Path, plan, keep_attrs: bool) -> dict:
+    """Commit seed 2 into a repo whose root says `* text=auto eol=lf`, check it out afresh."""
+    repo = tmp_path / ("repo-keep" if keep_attrs else "repo-drop")
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / ".gitattributes").write_bytes(b"* text=auto eol=lf\n")
+    seed = repo / "seed-2" / "input"
+    synth.write_seed(plan, 2, seed)
+    if not keep_attrs:
+        (seed / ".gitattributes").unlink()
+    written = tree_bytes(seed)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "seed")
+    clone = tmp_path / (repo.name + "-clone")
+    _git(tmp_path, "clone", "-q", str(repo), str(clone))
+    return {"written": written, "clone": tree_bytes(clone / "seed-2" / "input")}
+
+
+def test_git_stores_the_seed_bytes_unchanged(tmp_path, plan):
+    trees = _committed_tree(tmp_path, plan, keep_attrs=True)
+    assert trees["clone"] == trees["written"]
+    clone_seed = tmp_path / "repo-keep-clone" / "seed-2" / "input"
+    assert ds.validate(clone_seed, MODEL / "schema.json")["problems"] == []
+    # the fixture's seed 2 has CRLF record ends, so without the file git would change them
+    bare = _committed_tree(tmp_path, plan, keep_attrs=False)
+    assert bare["clone"] != bare["written"]
+    assert any(b"\r\n" in data for data in trees["clone"].values())
+
+
 def test_names_generated_lookup_columns(tmp_path, make_engagement, quiet, capfd):
     eng, _e, out = setup_engagement(tmp_path, make_engagement)
     code, summary = run(capfd, "synth", eng, "--seeds", "1", "--out", str(out))
@@ -186,6 +245,7 @@ def test_names_generated_lookup_columns(tmp_path, make_engagement, quiet, capfd)
     assert "generated codes: Orders.Channel" in summary["messages"]
     assert "codes from rules.json values: OrderStates.StateID" in summary["messages"]
     assert not any("Kinds" in m or "PayMethod" in m for m in summary["messages"])
+    assert "typed values per key: Settings.SettingValue" in summary["messages"]
 
 
 @pytest.mark.parametrize(
@@ -492,6 +552,54 @@ def test_lookup_value_list_and_enum_table(plan, seeds):
         assert values(seeds[seed]["Settings"], "SettingID") == [1, 3]
 
 
+def test_settings_converted_per_key_hold_typed_values(plan, seeds):
+    # GetSetting in the fixture module converts setting 1 from thousandths and setting 3 to a date
+    assert plan.typed == ["Settings.SettingValue"]
+    assert plan.tables["Settings"].typed["SettingValue"] == (
+        "SettingID",
+        {"1": ("number", 1000), "3": ("date", None)},
+    )
+    rates = []
+    for seed in SEEDS:
+        rows = {r["SettingID"]: r["SettingValue"] for r in seeds[seed]["Settings"]}
+        assert rows[1] is not None and rows[1].isdigit(), seed
+        assert 0 <= int(rows[1]) <= 200
+        day = dt.date.fromisoformat(rows[3])
+        assert synth.WINDOW_START <= day <= synth.WINDOW_END
+        rates.append(rows[1])
+    assert rates[1] == "0"  # seed 2: the boundary
+    assert len(set(rates)) > 1
+
+
+def test_typed_value_detection_needs_a_lookup_and_a_conversion():
+    design = synth.load_design(MODEL, RULES)
+    lines = [
+        "Public Function A(ByVal k As Long) As Variant",
+        '10  v = DLookup("SettingValue", "Settings", "SettingID = " & k)',
+        "20  Select Case k",
+        "        Case 1, 2",
+        "30          v = CBool(v)  ' Case 9: v = CDate(v)",
+        "        Case 3",
+        "40          v = v",
+        "    End Select",
+        "End Function",
+        "Public Function B(ByVal k As Long) As Variant",
+        "    Select Case k",
+        "        Case 4",
+        "            v = CDate(Me.Text)",
+        "    End Select",
+        "End Function",
+    ]
+    design.code = {"m": "\n".join(lines)}
+    typed = synth.Literals(design).typed_values()
+    assert typed == {
+        ("Settings", "SettingValue"): {
+            "key": "SettingID",
+            "kinds": {1: ("bool", None), 2: ("bool", None)},
+        }
+    }
+
+
 def test_generated_lookup_codes(plan, seeds):
     assert plan.generated == ["Orders.Channel"]
     pool = plan.tables["Orders"].pools["Channel"]
@@ -597,6 +705,11 @@ def test_seed_2_adds_nulls_empties_boundaries_and_non_ascii(seeds):
                 or c.get("computed")
                 or c["name"] in t["primary_key"]
             ):
+                continue
+            if (t["name"], c["name"]) == ("Settings", "SettingValue"):
+                # every Settings row is a key the code converts: typed, never NULL
+                # (test_settings_converted_per_key_hold_typed_values)
+                assert None not in values(rows, c["name"])
                 continue
             assert None in values(rows, c["name"]), (t["name"], c["name"])
     assert "" in values(s["Customers"], "Email")

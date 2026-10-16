@@ -30,6 +30,11 @@ plus `-` and the first 8 hex digits of sha256(id) when anything was replaced
 - NULL is the unquoted `\N`. An empty string is `""`. A text whose whole value is backslashes
   followed by `N` gets one more leading backslash (`\N` as text is written `\\N`).
 - A unit with no rows is its header line alone (status `empty` in the manifest).
+- The bytes are the golden: the manifest digest is taken over them, so a stored copy must keep
+  CRLF and any CR or LF inside a field. `golden record` writes a `.gitattributes` holding
+  `* -text` in every `synthetic/seed-N/expected/` folder, so a repository rule such as
+  `* text=auto eol=lf` does not turn them into LF on commit; `--check` reports the file when it
+  is missing or changed.
 
 ## Values by neutral type
 

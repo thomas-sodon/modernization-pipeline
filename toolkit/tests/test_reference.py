@@ -326,6 +326,163 @@ def test_format_quarter_pattern_is_rewritten_with_datepart():
     assert cat.engine_compat('SELECT Format(d,"mmm-yyyy") FROM T')[1] == 0
 
 
+def _kind(expr):
+    ref = cat.column_ref(expr)
+    return {"Name": True, "Amt": False, "Fee": False}.get(ref[1]) if ref else None
+
+
+@pytest.mark.parametrize(
+    "sql, expected, made",
+    [
+        (
+            "SELECT Nz([T].[Amt])+Nz(T.Fee) AS Tot FROM T",
+            "SELECT COALESCE([T].[Amt], 0)+COALESCE(T.Fee, 0) AS Tot FROM T",
+            2,
+        ),
+        (
+            'SELECT Nz(Amt, 0) AS A, Nz(Name) AS N, Nz(Amt) AS B, Nz(Amt, "none") AS C FROM T',
+            'SELECT COALESCE(Amt, 0) AS A, Nz(Name) AS N, (Amt) AS B, Nz(Amt, "none") AS C FROM T',
+            2,
+        ),
+        (
+            "SELECT 1 - (Nz(Amt)) AS D, Nz(Amt) Mod 2 AS E FROM T",
+            "SELECT 1 - (COALESCE(Amt, 0)) AS D, COALESCE(Amt, 0) Mod 2 AS E FROM T",
+            2,
+        ),
+        (
+            "SELECT Nz(Nz(Amt, Fee), 0) AS F FROM T",
+            "SELECT COALESCE(COALESCE(Amt, Fee), 0) AS F FROM T",
+            2,
+        ),
+        (
+            "SELECT Nz((SELECT Sum(x.Amt) FROM T AS x WHERE x.K = T.K), 0) AS G FROM T",
+            "SELECT COALESCE((SELECT Sum(x.Amt) FROM T AS x WHERE x.K = T.K), 0) AS G FROM T",
+            1,
+        ),
+        (
+            "SELECT 'Nz(Amt)' AS H, [Nz(x)] FROM T",
+            "SELECT 'Nz(Amt)' AS H, [Nz(x)] FROM T",
+            0,
+        ),
+    ],
+)
+def test_nz_is_written_so_the_engine_keeps_the_value(sql, expected, made):
+    assert cat.nz_for_engine(sql, _kind) == (expected, made)
+
+
+def test_nz_without_default_needs_access_confirmation(tmp_path):
+    private = tmp_path / "p"
+    shutil.copytree(FIX / "model", private / "out" / "model")
+    objects = json.loads((private / "out" / "model" / "objects.json").read_text())
+    for name, sql in (
+        (
+            "qNzBare",
+            "SELECT Orders.OrderID, Nz([Orders].[Amount])+Nz(Orders.Qty) AS T FROM Orders;",
+        ),
+        ("qNzDefault", "SELECT Orders.OrderID, Nz(Orders.Amount, 0) AS A FROM Orders;"),
+        ("qOnNzBare", "SELECT qNzBare.T FROM qNzBare;"),
+    ):
+        objects["queries"].append(
+            {
+                "name": name,
+                "storage": "sql",
+                "query_type": "select",
+                "design": {},
+                "params": [],
+                "functions": [],
+                "form_refs": [],
+                "sql": sql,
+            }
+        )
+    (private / "out" / "model" / "objects.json").write_text(json.dumps(objects))
+    catalog, sqls, msgs = cat.build(private, tmp_path / "t", "x", java_functions={})
+    units = {u["id"]: u for u in catalog["units"]}
+    assert units["qNzBare"]["needs_access_confirmation"] is True
+    assert units["qOnNzBare"]["needs_access_confirmation"] is True
+    assert units["qNzDefault"]["needs_access_confirmation"] is False
+    assert all(
+        units[u]["status"] == "ok" for u in ("qNzBare", "qNzDefault", "qOnNzBare")
+    )
+    assert (
+        "Nz([Orders].[Amount])" in sqls["qNzBare"]
+    )  # the catalog keeps the Access SQL
+    assert any(m.startswith("qNzBare: Nz without a default") for m in msgs)
+
+
+def test_nz_keeps_currency_and_decimal_values_exact(tmp_path):
+    """UCanAccess's own Nz returns 12 for Nz(12.34) on a currency column; the engine must not."""
+    from toolkit.reference.engine import AccessReference
+
+    path = tmp_path / "nz.accdb"
+    conn = bridge.connect(path, read_only=False, new_version="V2010")
+    try:
+        st = conn.createStatement()
+        st.execute(
+            "CREATE TABLE PO (ID LONG, Fee CURRENCY, Tax NUMERIC(18,4), Note TEXT(20), "
+            "PRIMARY KEY (ID))"
+        )
+        st.execute(
+            "CREATE TABLE POLine (LineID LONG, POID LONG, Qty LONG, Cost CURRENCY)"
+        )
+        for row in (
+            "1, 3.17, 1.0525, 'n1'",
+            "2, NULL, 0.33, NULL",
+            "3, NULL, NULL, 'n3'",
+        ):
+            st.execute(f"INSERT INTO PO (ID, Fee, Tax, Note) VALUES ({row})")
+        for row in ("1, 1, 2, 4.99", "2, 1, 1, 0.07", "3, 3, 3, 1.11"):
+            st.execute(f"INSERT INTO POLine (LineID, POID, Qty, Cost) VALUES ({row})")
+    finally:
+        conn.close()
+    private = tmp_path / "p"
+    sqls = {
+        "qCost": "SELECT PO.ID, Sum([Qty]*[Cost]) AS Ext FROM PO LEFT JOIN POLine "
+        "ON PO.ID = POLine.POID GROUP BY PO.ID;",
+        "qTotal": "SELECT PO.ID, Nz([qCost].[Ext])+Nz([PO].[Fee])+Nz([PO].[Tax]) AS Total "
+        "FROM PO INNER JOIN qCost ON PO.ID = qCost.ID ORDER BY PO.ID;",
+        "qBare": "SELECT PO.ID, Nz(PO.Fee) AS F, Nz([PO].[Tax], 0) AS T, Nz(PO.Note) AS N "
+        "FROM PO ORDER BY PO.ID;",
+    }
+    units = []
+    for uid, deps in (("qBare", []), ("qCost", []), ("qTotal", ["qCost"])):
+        units.append(
+            {
+                "id": uid,
+                "kind": "saved_query",
+                "object": {"type": "query", "name": uid},
+                "sql_ref": f"sql/{uid}.sql",
+                "depends_on": deps,
+                "params": [],
+                "app_functions": [],
+                "status": "ok",
+                "reason": None,
+                "needs_access_confirmation": True,
+            }
+        )
+    catalog = {
+        "format_version": cat.FORMAT_VERSION,
+        "engine": cat.ENGINE,
+        "engagement": "x",
+        "units": units,
+    }
+    cat.write(private, catalog, sqls)
+    with AccessReference(private, path, catalog) as ref:
+        assert ref.view_errors == {}
+        assert ref.rows("qTotal") == [
+            (1, Decimal("14.2725")),  # 2*4.99 + 1*0.07 + 3.17 + 1.0525
+            (2, Decimal("0.33")),  # no lines and no fee: Empty counts as 0
+            (3, Decimal("3.33")),
+        ]
+        total = ref.rows("qTotal")[0][1]
+        assert isinstance(total, Decimal) and total.as_tuple().exponent <= -2
+        assert ref.rows("qBare") == [
+            (1, Decimal("3.17"), Decimal("1.0525"), "n1"),
+            (2, None, Decimal("0.33"), ""),  # text keeps Access's zero-length string
+            (3, None, Decimal(0), "n3"),
+        ]
+        assert dict(ref.describe("qTotal"))["Total"] == "currency"
+
+
 # ------------------------------------------------------------------ build and run (seeds)
 
 
