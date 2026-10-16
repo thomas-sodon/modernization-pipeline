@@ -271,13 +271,14 @@
         "S5",
         "S6"
       ],
-      "check": "F=$HOME/.config/modernization/env && D=$HOME/.config/modernization/data.env && test -f \"$F\" && test -f \"$D\" && test \"$(stat -c %a \"$F\")\" = 600 && test \"$(stat -c %a \"$D\")\" = 600 && grep -q '^export PATH=' \"$F\" && test -z \"$(grep -v '^export [A-Z_][A-Z0-9_]*=' \"$F\" \"$D\")\"",
-      "fix": "mkdir -p $HOME/.config/modernization && F=$HOME/.config/modernization/env && D=$HOME/.config/modernization/data.env && umask 077 && touch \"$F\" \"$D\" && chmod 600 \"$F\" \"$D\" && { grep -v '^export PATH=' \"$F\"; echo \"export PATH=$HOME/.local/bin:\\$PATH\"; } > \"$F.new\" && mv \"$F.new\" \"$F\" && { grep -v '^export UV_PYTHON_PREFERENCE=' \"$F\"; echo 'export UV_PYTHON_PREFERENCE=only-managed'; } > \"$F.new\" && mv \"$F.new\" \"$F\"",
+      "check": "F=$HOME/.config/modernization/env && D=$HOME/.config/modernization/data.env && test -f \"$F\" && test -f \"$D\" && test \"$(stat -c %a \"$F\")\" = 600 && test \"$(stat -c %a \"$D\")\" = 600 && grep -q '^export PATH=' \"$F\" && grep -q '^export UV_TOOL_DIR=' \"$F\" && test -z \"$(grep -v '^export [A-Z_][A-Z0-9_]*=' \"$F\" \"$D\")\"",
+      "fix": "mkdir -p $HOME/.config/modernization && F=$HOME/.config/modernization/env && D=$HOME/.config/modernization/data.env && umask 077 && touch \"$F\" \"$D\" && chmod 600 \"$F\" \"$D\" && { grep -v '^export PATH=' \"$F\"; echo \"export PATH=$HOME/.local/bin:\\$PATH\"; } > \"$F.new\" && mv \"$F.new\" \"$F\" && { grep -v '^export UV_PYTHON_PREFERENCE=' \"$F\"; echo 'export UV_PYTHON_PREFERENCE=only-managed'; } > \"$F.new\" && mv \"$F.new\" \"$F\" && { grep -v '^export UV_TOOL_DIR=' \"$F\"; echo \"export UV_TOOL_DIR=$HOME/.cache/uv-tools\"; } > \"$F.new\" && mv \"$F.new\" \"$F\"",
       "writes": [
         "PATH",
-        "UV_PYTHON_PREFERENCE"
+        "UV_PYTHON_PREFERENCE",
+        "UV_TOOL_DIR"
       ],
-      "note": "Runs first. Creates two files, both chmod 600 and holding only `export NAME=value` lines with absolute values. The env file ($HOME/.config/modernization/env) has no secrets: mp-run and mp-data source it before every command, so agents see it; the mp_agent logins in its PG_URL and MSSQL_URL are refused by every mpdata_ database. data.env ($HOME/.config/modernization/data.env) holds every secret value (the database superuser and mp_runner URLs, the SQL Server sa password, and the variables that `env:NAME` secret refs name); only mp-data and the operator read it, mp-run makes it unreadable and mp-data hides it from its toolkit child. Every later check and fix sources what it needs."
+      "note": "Runs first. Creates two files, both chmod 600 and holding only `export NAME=value` lines with absolute values. The env file ($HOME/.config/modernization/env) has no secrets: mp-run and mp-data source it before every command, so agents see it; the mp_agent logins in its PG_URL and MSSQL_URL are refused by every mpdata_ database. data.env ($HOME/.config/modernization/data.env) holds every secret value (the database superuser and mp_runner URLs, the SQL Server sa password, and the variables that `env:NAME` secret refs name); only mp-data and the operator read it, mp-run makes it unreadable and mp-data hides it from its toolkit child. Every later check and fix sources what it needs. UV_TOOL_DIR points uvx at a writable tool directory ($HOME/.cache/uv-tools), because mp-run mounts $HOME/.local/share/uv read-only."
     },
     {
       "id": "uv",
