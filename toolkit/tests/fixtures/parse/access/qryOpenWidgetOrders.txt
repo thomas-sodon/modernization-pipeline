@@ -1,0 +1,39 @@
+Operation =1
+Option =0
+Where ="(((tblWidgetOrders.Status)=\"Open\") AND ((tblWidgetOrders.OrderDate)>=[Forms]![frmWidgetOrder]![txtFrom]))"
+Begin InputTables
+    Name ="tblWidgetOrders"
+    Name ="tblCustomers"
+End
+Begin OutputColumns
+    Expression ="tblWidgetOrders.OrderNo"
+    Alias ="CustomerLabel"
+    Expression ="UCase([CustomerName]) & \" (\" & Nz([Region],\"-\") & \")\""
+    Expression ="tblWidgetOrders.OrderDate"
+End
+Begin Joins
+    LeftTable ="tblCustomers"
+    RightTable ="tblWidgetOrders"
+    Expression ="tblCustomers.CustomerID = tblWidgetOrders.CustomerID"
+    Flag =1
+End
+Begin OrderBy
+    Expression ="tblWidgetOrders.OrderDate"
+    Flag =1
+End
+Begin Parameters
+    Name ="[Forms]![frmWidgetOrder]![txtFrom]"
+    Flag =8
+End
+dbBoolean "ReturnsRecords" ="-1"
+dbInteger "ODBCTimeout" ="60"
+dbByte "RecordsetType" ="0"
+dbBinary "GUID" = Begin
+    0x5a1f0c3b8d2e4f6a9b7c1d0e2f3a4b5c
+End
+Begin
+    Begin
+        dbText "Name" ="tblWidgetOrders.OrderNo"
+        dbLong "AggregateType" ="-1"
+    End
+End

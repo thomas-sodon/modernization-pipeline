@@ -1,0 +1,828 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/thomas-sodon/modernization-pipeline/toolkit/schemas/engagement.schema.json",
+  "title": "engagement.json (docs/contracts.md#engagement-loading)",
+  "description": "Keys starting with _ are allowed at every level and ignored by the loader. toolkit engagement-lint adds the driver's checks (source_kinds, id, slug, db_name, markers, compiled_only, records).",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "client": {
+      "type": "string"
+    },
+    "bootstrap": {
+      "type": "boolean"
+    },
+    "db_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z][a-z0-9_]{1,40}$"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "last_modified": {
+          "type": "string"
+        },
+        "etag": {
+          "type": "string"
+        },
+        "content_md5": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "on_mismatch": {
+          "type": "string"
+        },
+        "data_copy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data_copy_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "saved_with_data": {
+          "type": "boolean"
+        },
+        "compiled_only": {
+          "type": "boolean"
+        },
+        "layout": {
+          "enum": [
+            "single-file",
+            "split"
+          ]
+        },
+        "backends": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256",
+              "password_ref"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "password_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+              }
+            }
+          }
+        },
+        "external_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "odbc-sqlserver",
+                  "sharepoint",
+                  "excel",
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        "licence": {
+          "type": "string"
+        },
+        "git": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "clone_dir": {
+          "type": "string"
+        },
+        "vba_export": {
+          "type": "string"
+        },
+        "sample_outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+        },
+        "root": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "local",
+            "github"
+          ]
+        },
+        "local_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "root"
+      ]
+    },
+    "records": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "app": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string"
+        },
+        "project_name": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "use_tz": {
+          "type": "boolean"
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "project_name"
+      ]
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "enum": [
+            "postgresql",
+            "mssql"
+          ]
+        },
+        "verify_also": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "postgresql",
+              "mssql"
+            ]
+          }
+        },
+        "stage1": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "freeze_window": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "fresh_copy": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "relink_by": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rollback": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "office_bitness": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "odbc_driver": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          }
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false,
+      "required": [
+        "primary"
+      ]
+    },
+    "auth": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "microsoft-entra",
+            "local"
+          ]
+        },
+        "groups_to_roles": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    },
+    "hosting": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "managed_by": {
+          "type": "string"
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    },
+    "data_policy": {
+      "type": "object",
+      "properties": {
+        "redact": {
+          "const": "always"
+        },
+        "execution": {
+          "enum": [
+            "local",
+            "cloud-allowed"
+          ]
+        },
+        "scrub_design": {
+          "type": "boolean"
+        },
+        "commit_data": {
+          "type": "boolean"
+        },
+        "ai_terms": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "provider": {
+              "type": "string"
+            },
+            "zero_data_retention": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "checked_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          }
+        },
+        "client_consent": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "document": {
+              "type": "string"
+            },
+            "signed_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          }
+        },
+        "retention_days_after_acceptance": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false,
+      "required": [
+        "execution"
+      ]
+    },
+    "secrets": {
+      "type": "object",
+      "properties": {
+        "github_push": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+            },
+            "scope": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "expires": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          },
+          "additionalProperties": false
+        },
+        "accdb_password_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+        },
+        "stage1_target_url_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+        },
+        "staging_db_url_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+        },
+        "production_db_url_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+        },
+        "entra": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "tenant_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "client_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "client_secret_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(env:[A-Z_][A-Z0-9_]*|pass:\\S+)$"
+            },
+            "secret_expires": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "redirect_uris": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          },
+          "additionalProperties": false
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "areas_hint": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "must_keep": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "foundation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "email": {
+          "type": "string"
+        },
+        "dashboard": {
+          "type": "string"
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "object",
+      "properties": {
+        "screenshots": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    },
+    "commercial": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string"
+        },
+        "purchased": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "offer",
+              "when",
+              "pct"
+            ],
+            "properties": {
+              "offer": {
+                "type": "string"
+              },
+              "when": {
+                "type": "string"
+              },
+              "pct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "patternProperties": {
+              "^_": {}
+            },
+            "additionalProperties": false
+          }
+        },
+        "rate_usd_per_hour": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "budget_hours": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quote": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "assessment_credit_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quote_is_simulated": {
+          "type": "boolean"
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    },
+    "care_plan": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "purchased": {
+          "type": "boolean"
+        },
+        "monthly_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "hours_included": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "access_after_acceptance": {
+          "type": "object",
+          "properties": {
+            "github": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hosting": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "entra": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          }
+        },
+        "calendar": {
+          "type": "array"
+        },
+        "private_data": {
+          "type": "string"
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "windows_box": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "host": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "access_build": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "client_data_allowed": {
+              "type": "boolean"
+            },
+            "disk_encrypted": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "copies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "what"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "what": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "patternProperties": {
+            "^_": {}
+          }
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    },
+    "expected_inventory": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "integer",
+          "object"
+        ]
+      },
+      "patternProperties": {
+        "^_": {}
+      }
+    }
+  },
+  "patternProperties": {
+    "^_": {}
+  },
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "bootstrap",
+    "source",
+    "target",
+    "app",
+    "database",
+    "data_policy",
+    "secrets",
+    "scope"
+  ]
+}

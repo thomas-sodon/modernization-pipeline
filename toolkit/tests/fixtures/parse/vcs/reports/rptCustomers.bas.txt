@@ -1,0 +1,21 @@
+Version =21
+VersionRequired =20
+Begin Report
+    Width =7200
+    RecordSource ="qryCustomers"
+    Begin
+        Begin Section
+            Height =360
+            Name ="Detail"
+            Begin
+                Begin TextBox
+                    Left =120
+                    Width =4320
+                    Height =300
+                    Name ="txtCustomerName"
+                    ControlSource ="CustomerName"
+                End
+            End
+        End
+    End
+End

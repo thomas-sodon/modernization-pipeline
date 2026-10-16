@@ -1,0 +1,146 @@
+{
+  "format_version": 1,
+  "modules": [
+    {
+      "code_file": "code/ThisWorkbook.txt",
+      "handlers": [
+        "Workbook_Open"
+      ],
+      "kind": "document",
+      "name": "ThisWorkbook",
+      "nonblank_lines": 3,
+      "procedures": [
+        {
+          "end": 3,
+          "kind": "Sub",
+          "lines": 3,
+          "name": "Workbook_Open",
+          "refs": {
+            "dao": false,
+            "docmd": [],
+            "forms": [],
+            "queries": [],
+            "reports": [],
+            "tables": []
+          },
+          "scope": "Public",
+          "start": 1,
+          "static": false
+        }
+      ]
+    },
+    {
+      "code_file": "code/clsLine.txt",
+      "handlers": [],
+      "kind": "class",
+      "name": "clsLine",
+      "nonblank_lines": 6,
+      "procedures": [
+        {
+          "end": 6,
+          "kind": "Sub",
+          "lines": 6,
+          "name": "Total",
+          "refs": {
+            "dao": false,
+            "docmd": [],
+            "forms": [],
+            "queries": [],
+            "reports": [],
+            "tables": []
+          },
+          "scope": "Public",
+          "start": 1,
+          "static": false
+        }
+      ]
+    },
+    {
+      "code_file": "code/frmQuote.txt",
+      "handlers": [
+        "cmdOK_Click"
+      ],
+      "kind": "userform",
+      "name": "frmQuote",
+      "nonblank_lines": 9,
+      "procedures": [
+        {
+          "end": 9,
+          "kind": "Sub",
+          "lines": 9,
+          "name": "cmdOK_Click",
+          "refs": {
+            "dao": true,
+            "docmd": [],
+            "forms": [],
+            "queries": [],
+            "reports": [],
+            "tables": [
+              "QuoteTable"
+            ]
+          },
+          "scope": "Public",
+          "start": 1,
+          "static": false
+        }
+      ]
+    },
+    {
+      "code_file": "code/modQuote.txt",
+      "handlers": [],
+      "kind": "standard",
+      "name": "modQuote",
+      "nonblank_lines": 20,
+      "procedures": [
+        {
+          "end": 12,
+          "kind": "Sub",
+          "lines": 11,
+          "name": "MakeQuote",
+          "refs": {
+            "dao": true,
+            "docmd": [],
+            "forms": [
+              "frmQuote"
+            ],
+            "queries": [],
+            "reports": [],
+            "tables": [
+              "QuoteTable"
+            ]
+          },
+          "scope": "Public",
+          "start": 1,
+          "static": false
+        },
+        {
+          "end": 20,
+          "kind": "Sub",
+          "lines": 7,
+          "name": "ShowForm",
+          "refs": {
+            "dao": false,
+            "docmd": [],
+            "forms": [
+              "frmQuote"
+            ],
+            "queries": [],
+            "reports": [],
+            "tables": []
+          },
+          "scope": "Public",
+          "start": 13,
+          "static": false
+        }
+      ]
+    },
+    {
+      "code_file": "code/shQuote.txt",
+      "handlers": [],
+      "kind": "document",
+      "name": "shQuote",
+      "nonblank_lines": 0,
+      "procedures": []
+    }
+  ]
+}

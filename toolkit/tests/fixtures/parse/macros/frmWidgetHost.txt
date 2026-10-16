@@ -1,0 +1,39 @@
+Version =20
+VersionRequired =20
+Begin Form
+    Width =4320
+    Caption ="Widget host"
+    Begin
+        Begin Section
+            Height =1440
+            Name ="Detail"
+            Begin
+                Begin CommandButton
+                    Left =360
+                    Top =360
+                    Width =1800
+                    Height =420
+                    Name ="cmdShowReport"
+                    Caption ="Show report"
+                    OnClick ="[Embedded Macro]"
+                    OnClickEmMacro = Begin
+                        Version =196611
+                        ColumnsShown =8
+                        Begin
+                            Action ="OpenReport"
+                            Argument ="rptWidgetInvoice"
+                            Argument ="2"
+                        End
+                        Begin
+                            Comment ="_AXL:<?xml version=\"1.0\" encoding=\"UTF-16\" standalone=\"no\"?>\015\012<UserI"
+                                "nterfaceMacro For=\"cmdShowReport\" xmlns=\"http://schemas.microsoft.com/office/a"
+                                "ccessservices/2009/11/application\"><Statements><Action Name=\"OpenReport\"><Argume"
+                                "nt Name=\"ReportName\">rptWidgetInvoice</Argument><Argument Name=\"View\">Print Pre"
+                                "view</Argument></Action></Statements></UserInterfaceMacro>"
+                        End
+                    End
+                End
+            End
+        End
+    End
+End

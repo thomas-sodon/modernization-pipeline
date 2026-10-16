@@ -1,0 +1,36 @@
+Option Compare Database
+Option Explicit
+
+' Widget pricing helpers. Contact: widgets@example.invalid or +1 555 010 0199.
+Private Declare PtrSafe Function GetTickCount Lib "kernel32" () As Long
+
+Public Const WIDGET_DSN As String = "ODBC;DRIVER={SQL Server};SERVER=db01;UID=widget_app;PWD=s3cretPass;"
+
+Public Function LineTotal(ByVal qty As Long, ByVal price As Currency, _
+                          Optional ByVal discount As Double = 0) As Currency
+    LineTotal = qty * price * (1 - discount)
+End Function
+
+Private Static Function NextTicket() As Long
+    Dim n As Long
+    n = n + 1
+    NextTicket = n
+End Function
+
+Friend Sub RepriceOpenOrders()
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Set db = CurrentDb
+    Set rs = db.OpenRecordset("SELECT * FROM tblWidgetOrders WHERE Status = 'Open'")
+    Do Until rs.EOF
+        rs.MoveNext
+    Loop
+    rs.Close
+    DoCmd.OpenQuery "qryOpenWidgetOrders"
+    DoCmd.OpenForm "frmWidgetOrder"
+End Sub
+
+Sub ShowPrices()
+    ' a "café" price list (cp1252 text)
+    MsgBox "Prix café: 2 €"
+End Sub

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:od="urn:schemas-microsoft-com:officedata">
+<xsd:element name="dataroot">
+<xsd:complexType><xsd:sequence><xsd:element ref="tblCustomers" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType>
+</xsd:element>
+<xsd:element name="tblCustomers">
+<xsd:annotation><xsd:appinfo>
+<od:index index-name="PrimaryKey" index-key="CustomerID " primary="yes" unique="yes" clustered="no" order="asc"/>
+</xsd:appinfo></xsd:annotation>
+<xsd:complexType>
+<xsd:sequence>
+<xsd:element name="CustomerID" minOccurs="1" od:jetType="autonumber" od:sqlSType="int" od:autoUnique="yes" od:nonNullable="yes" type="xsd:int"/>
+<xsd:element name="CustomerName" minOccurs="0" od:jetType="text" od:sqlSType="nvarchar">
+<xsd:simpleType><xsd:restriction base="xsd:string"><xsd:maxLength value="80"/></xsd:restriction></xsd:simpleType>
+</xsd:element>
+<xsd:element name="Region" minOccurs="0" od:jetType="text" od:sqlSType="nvarchar">
+<xsd:simpleType><xsd:restriction base="xsd:string"><xsd:maxLength value="30"/></xsd:restriction></xsd:simpleType>
+</xsd:element>
+<xsd:element name="LastOrder" minOccurs="0" od:jetType="datetime" od:sqlSType="datetime" type="xsd:dateTime"/>
+<xsd:element name="Website" minOccurs="0" od:jetType="hyperlink" od:sqlSType="ntext"/>
+<xsd:element name="RowGuid" minOccurs="0" od:jetType="replicationid" od:sqlSType="uniqueidentifier"/>
+</xsd:sequence>
+</xsd:complexType>
+</xsd:element>
+</xsd:schema>

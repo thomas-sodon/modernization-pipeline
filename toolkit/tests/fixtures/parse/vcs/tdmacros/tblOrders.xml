@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<DataMacros xmlns="http://schemas.microsoft.com/office/accessservices/2009/11/application"><DataMacro Event="BeforeChange"><Statements><ConditionalBlock><If><Condition>[Amount]&lt;0</Condition><Statements><Action Name="RaiseError"><Argument Name="Number">1</Argument><Argument Name="Description">Amount cannot be negative</Argument></Action></Statements></If></ConditionalBlock></Statements></DataMacro></DataMacros>

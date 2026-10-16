@@ -1,0 +1,14 @@
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Compare Database
+Option Explicit
+
+Private Sub Form_Open(Cancel As Integer)
+    Me.Caption = "Customer " & Nz(Me.txtName, "")
+End Sub
+
+Private Sub cmdOrders_Click()
+    DoCmd.OpenReport "rptCustomers", acViewPreview
+End Sub

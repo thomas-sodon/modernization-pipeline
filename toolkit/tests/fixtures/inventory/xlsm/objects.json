@@ -1,0 +1,217 @@
+{
+  "activex": [
+    {
+      "anchor": null,
+      "clsid": "{00000000-0000-0000-0000-000000000000}",
+      "control": "CheckBox1",
+      "name": "Quote!CheckBox1",
+      "part": "xl/activeX/activeX1.xml",
+      "sheet": "Quote"
+    }
+  ],
+  "buttons": [
+    {
+      "anchor": null,
+      "caption": "Make quote",
+      "control": "ctrlProp1",
+      "macro": "modQuote.MakeQuote",
+      "name": "Quote!Button 1",
+      "sheet": "Quote"
+    }
+  ],
+  "calculated_columns": [
+    {
+      "column": "Total",
+      "formula": "=[@Net]*TaxRate",
+      "name": "QuoteTable[Total]",
+      "table": "QuoteTable"
+    }
+  ],
+  "charts": [
+    {
+      "anchor": null,
+      "name": "Dash!Chart 1",
+      "series": [
+        {
+          "val": "Calc!$B$2:$B$3"
+        }
+      ],
+      "sheet": "Dash",
+      "title": null,
+      "type": "barChart"
+    },
+    {
+      "anchor": null,
+      "name": "Quote!Chart 2",
+      "series": [],
+      "sheet": "Quote",
+      "title": null,
+      "type": "pieChart"
+    }
+  ],
+  "comments": {
+    "Quote": 2
+  },
+  "data_validations": [
+    {
+      "allow_blank": true,
+      "formula1": "=Customers",
+      "formula2": null,
+      "name": "Quote!B2:B9",
+      "operator": null,
+      "range": "B2:B9",
+      "sheet": "Quote",
+      "type": "list"
+    }
+  ],
+  "defined_names": [
+    {
+      "broken": true,
+      "hidden": false,
+      "name": "OldRange",
+      "refers_to": "#REF!",
+      "scope_sheet": null
+    },
+    {
+      "broken": false,
+      "hidden": false,
+      "name": "TaxRate",
+      "refers_to": "Calc!$B$1",
+      "scope_sheet": null
+    },
+    {
+      "broken": false,
+      "hidden": true,
+      "name": "_xlnm.Print_Area",
+      "refers_to": "Quote!$A$1:$D$9",
+      "scope_sheet": 0
+    }
+  ],
+  "diagnostics": {
+    "errors": [],
+    "package_parts": {},
+    "unknown_parts": {},
+    "warnings": []
+  },
+  "facts": {
+    "array_formula_cells": 1,
+    "compiled_only": false,
+    "formula_cells_by_sheet": {
+      "Calc": 2,
+      "Quote": 3
+    },
+    "sample_outputs": {
+      "msg": 1,
+      "pdf": 2,
+      "xlsx": 0
+    },
+    "table_columns": {
+      "Glossary": 2,
+      "LineTable": 3,
+      "QuoteTable": 4
+    },
+    "vba_present": true
+  },
+  "format_version": 1,
+  "forms": [],
+  "formula_blocks": [
+    {
+      "cells": [
+        {
+          "address": "B2",
+          "formula": "=SUM(QuoteTable[Net])",
+          "has_cached_value": true
+        },
+        {
+          "address": "B3",
+          "formula": "=B2*TaxRate",
+          "has_cached_value": false
+        }
+      ],
+      "name": "Calc!B2:B3",
+      "range": "B2:B3",
+      "sheet": "Calc"
+    }
+  ],
+  "linked_tables": [],
+  "macro_assignments": [
+    {
+      "kind": "sp",
+      "macro": "MakeQuote",
+      "name": "Quote!Shape 1",
+      "shape": "Shape 1",
+      "sheet": "Quote"
+    },
+    {
+      "kind": "sp",
+      "macro": "'QuoteBook.xlsm'!ShowForm",
+      "name": "Quote!Shape 2",
+      "shape": "Shape 2",
+      "sheet": "Quote"
+    }
+  ],
+  "macros": [],
+  "queries": [],
+  "reports": [],
+  "sheets": [
+    {
+      "formula_cells": 3,
+      "index": 0,
+      "name": "Quote",
+      "role": "input",
+      "role_inferred": true,
+      "state": "visible"
+    },
+    {
+      "formula_cells": 2,
+      "index": 1,
+      "name": "Calc",
+      "role": "calculation",
+      "role_inferred": true,
+      "state": "hidden"
+    },
+    {
+      "formula_cells": 0,
+      "index": 2,
+      "name": "Notes",
+      "role": "documentation",
+      "role_inferred": true,
+      "state": "visible"
+    }
+  ],
+  "source_kind": "xlsm",
+  "userforms": [
+    {
+      "caption": "Quote",
+      "controls": [
+        {
+          "caption": null,
+          "name": "txtCustomer",
+          "type": "TextBox"
+        },
+        {
+          "caption": "OK",
+          "name": "cmdOK",
+          "type": "CommandButton"
+        },
+        {
+          "caption": "Customer",
+          "name": "lblCustomer",
+          "type": "Label"
+        }
+      ],
+      "name": "frmQuote"
+    }
+  ],
+  "vba_references": [
+    {
+      "name": "VBA"
+    },
+    {
+      "name": "Outlook"
+    },
+    {
+      "name": "stdole"
+    }
+  ]
+}

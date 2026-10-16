@@ -1,0 +1,42 @@
+{
+  "datamacros": [
+    {
+      "actions": [
+        {
+          "action": "SetLocalVar",
+          "args": {}
+        }
+      ],
+      "event": "AfterInsert",
+      "name": null,
+      "params": [],
+      "table": "tblWidgetOrders"
+    },
+    {
+      "actions": [
+        {
+          "action": "RaiseError",
+          "args": {
+            "Number": "1"
+          }
+        },
+        {
+          "action": "StopMacro",
+          "args": {}
+        }
+      ],
+      "event": "BeforeChange",
+      "name": null,
+      "params": [],
+      "table": "tblWidgetOrders"
+    }
+  ],
+  "files": [
+    {
+      "macros": 2,
+      "name": "tblWidgetOrders",
+      "table": "tblWidgetOrders"
+    }
+  ],
+  "format_version": 1
+}

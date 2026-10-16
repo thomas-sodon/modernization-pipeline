@@ -1,0 +1,147 @@
+Version =20
+VersionRequired =20
+Begin Form
+    RecordSelectors = NotDefault
+    DividingLines = NotDefault
+    Width =9360
+    DefaultView =0
+    RecordSource ="SELECT tblWidgetOrders.* FROM tblWidgetOrders WHERE Status=\"Open\";"
+    Caption ="Widget order"
+    OnLoad ="[Event Procedure]"
+    OnCurrent ="=RefreshTotals()"
+    PrtMip = Begin
+        0x6801000068010000680100006801000000000000201c0000e010000001000000 ,
+        0x010000006801000000000000a10700000100000001000000
+    End
+    Begin
+        Begin Label
+            BackStyle =0
+            Width =1440
+            Height =300
+        End
+        Begin TextBox
+            Width =2160
+            Height =300
+        End
+        Begin FormHeader
+            Height =720
+            Name ="FormHeader"
+            Begin
+                Begin Label
+                    Left =360
+                    Top =120
+                    Width =4320
+                    Height =420
+                    Name ="lblHeading"
+                    Caption ="Order ""express"" form"
+                End
+            End
+        End
+        Begin Section
+            Height =5040
+            Name ="Detail"
+            Begin
+                Begin TextBox
+                    Left =1800
+                    Top =240
+                    Name ="txtOrderNo"
+                    ControlSource ="OrderNo"
+                    AfterUpdate ="[Event Procedure]"
+                    Begin
+                        Begin Label
+                            Left =240
+                            Top =240
+                            Name ="lblOrderNo"
+                            Caption ="Order no."
+                        End
+                    End
+                End
+                Begin ComboBox
+                    Left =1800
+                    Top =720
+                    Width =2880
+                    Height =315
+                    Name ="cboCustomer"
+                    ControlSource ="CustomerID"
+                    RowSource ="SELECT CustomerID, CustomerName FROM tblCustomers "
+                        "ORDER BY CustomerName;"
+                    OnNotInList ="[Event Procedure]"
+                End
+                Begin Tab
+                    Left =240
+                    Top =1200
+                    Width =8640
+                    Height =3600
+                    Name ="tabDetail"
+                    Begin
+                        Begin Page
+                            Left =300
+                            Top =1560
+                            Width =8520
+                            Height =3180
+                            Name ="pgLines"
+                            Caption ="Lines"
+                            Begin
+                                Begin Subform
+                                    Left =360
+                                    Top =1680
+                                    Width =8280
+                                    Height =2880
+                                    Name ="sfrLines"
+                                    SourceObject ="Form.sfrWidgetOrderLines"
+                                    LinkChildFields ="OrderNo"
+                                    LinkMasterFields ="OrderNo"
+                                End
+                            End
+                        End
+                        Begin Page
+                            Name ="pgNotes"
+                            Caption ="Notes"
+                            Begin
+                                Begin TextBox
+                                    Left =360
+                                    Top =1680
+                                    Width =8280
+                                    Height =2400
+                                    Name ="txtNotes"
+                                    ControlSource ="Notes"
+                                End
+                            End
+                        End
+                    End
+                End
+            End
+        End
+        Begin FormFooter
+            Height =600
+            Name ="FormFooter"
+            Begin
+                Begin CommandButton
+                    Left =7200
+                    Top =120
+                    Width =1440
+                    Height =360
+                    Name ="cmdClose"
+                    Caption ="&Close"
+                    OnClick ="[Event Procedure]"
+                End
+            End
+        End
+    End
+End
+CodeBehindForm
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Compare Database
+Option Explicit
+
+Private Sub Form_Load()
+    ' start on the order number
+    Me.txtOrderNo.SetFocus
+End Sub
+
+Private Sub cmdClose_Click()
+    DoCmd.Close acForm, Me.Name
+End Sub

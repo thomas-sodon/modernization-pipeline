@@ -1,0 +1,38 @@
+_source = "starting guesses, not measured; hours are your hours for the whole offer, comparable with pricing_tiers hours; change them only by a pipeline PR after at least 3 engagements (docs/runbook.md section 3, Recalibration)"
+
+# Effort coefficients for `toolkit estimate` (docs/contracts.md#records). Hours.
+
+[bands]
+low = 0.8
+high = 1.25
+
+# Stage 2 (the whole offer), Access kinds: per object counted in inventory.json.
+[access]
+base = 24
+form = 1.0
+report = 0.75
+query = 0.25
+table = 0.25
+macro = 0.25           # standalone and embedded macros
+data_macro = 0.5
+vba_per_100_lines = 0.75
+
+# Stage 2, xlsm.
+[xlsm]
+base = 24
+userform = 1.5
+formula_block = 0.5
+calculated_column = 0.25
+chart = 0.5
+data_validation = 0.1
+business_table = 0.5
+sample_output_kind = 2.0
+vba_per_100_lines = 0.75
+
+# Stage 1 alone (Access kinds): move the tables, re-link the Access screens.
+[stage1]
+base = 10
+table = 0.15
+relationship = 0.05
+link = 0.25            # per linked table or external link
+data_macro = 0.25

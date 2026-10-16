@@ -1,0 +1,33 @@
+Version =21
+VersionRequired =20
+Begin Form
+    Width =6480
+    RecordSource ="tblCustomers"
+    Caption ="Customer"
+    OnOpen ="[Event Procedure]"
+    Begin
+        Begin Section
+            Height =2880
+            Name ="Detail"
+            Begin
+                Begin TextBox
+                    Left =1440
+                    Top =360
+                    Width =3600
+                    Height =300
+                    Name ="txtName"
+                    ControlSource ="CustomerName"
+                End
+                Begin CommandButton
+                    Left =1440
+                    Top =1080
+                    Width =1440
+                    Height =360
+                    Name ="cmdOrders"
+                    Caption ="Orders"
+                    OnClick ="[Event Procedure]"
+                End
+            End
+        End
+    End
+End

@@ -1,0 +1,11 @@
+Attribute VB_Name = "modUtil"
+Option Compare Database
+Option Explicit
+
+Public Function CountOrders(ByVal customerId As Long) As Long
+    CountOrders = DCount("*", "tblOrders", "CustomerID=" & customerId)
+End Function
+
+Public Sub OpenCustomer()
+    DoCmd.OpenForm "frmCustomer"
+End Sub

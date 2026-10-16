@@ -1,9 +1,8 @@
-/vendor/
-/private/
-/data/
+.venv/
 __pycache__/
 *.pyc
-.venv/
 .pytest_cache/
 .ruff_cache/
-paths.local.json
+vendor/
+engagements/*/paths.local.json
+.mp-probe

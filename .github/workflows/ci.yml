@@ -1,0 +1,35 @@
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  toolkit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install bubblewrap (test_mp_run.py and mp-data's jail)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          if [ "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+      - run: pip install uv==0.13.1
+      - run: uv sync --locked --all-groups
+      - run: uv run toolkit fetch --jars
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+      - run: uv run toolkit guard --hooks-only --repo .
+      - run: node tests/driver/run-stage.test.mjs
