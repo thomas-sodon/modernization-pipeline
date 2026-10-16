@@ -1,0 +1,20 @@
+{
+  "code_behind": [],
+  "database_properties": [],
+  "diagnostics": {"errors": [], "package_parts": {}, "unknown_parts": {}, "warnings": []},
+  "facts": {},
+  "format_version": 1,
+  "forms": [],
+  "linked_tables": [
+    {"backend": 1, "backend_file": null, "backend_kind": "odbc", "name": "lnkRates", "source_table": "Rates"}
+  ],
+  "macros": [],
+  "object_properties": [],
+  "queries": [
+    {"design": {}, "form_refs": [], "functions": [], "name": "ptqServerCount", "params": [], "query_type": "pass-through", "sql": "SELECT 1", "storage": "sql"},
+    {"design": {"input_tables": [{"alias": null, "name": "Bins"}]}, "form_refs": [], "functions": [], "name": "qryBins", "params": [], "query_type": "select", "sql": null, "storage": "design"}
+  ],
+  "reports": [],
+  "source_kind": "accdt",
+  "vba_references": []
+}

@@ -1,0 +1,7 @@
+LineID,OrderID,Product,Quantity,Price,Discount
+1,1,Widget,2,10.25,0.05
+2,1,Gadget,1,105,0.0
+3,3,Widget,3,33.33,0.125
+4,5,Bolt,10,1,\N
+5,2,\N,1,0,0.1
+7,3,Gadget,1,\N,0.3

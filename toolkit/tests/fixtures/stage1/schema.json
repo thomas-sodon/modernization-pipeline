@@ -1,0 +1,62 @@
+{
+  "format_version": 1,
+  "source_kind": "accdb",
+  "tables": [
+    {
+      "name": "Customers",
+      "role": "data",
+      "columns": [
+        {"name": "CustomerID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Company Name", "type": "text", "size": 50, "precision": null, "scale": null, "required": true, "properties": {"AllowZeroLength": "0"}},
+        {"name": "Active", "type": "yesno", "size": null, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "Yes"}},
+        {"name": "Notes", "type": "memo", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Tags", "type": "complex", "size": null, "precision": null, "scale": null, "required": false, "properties": {"AllowMultipleValues": "-1"}}
+      ],
+      "primary_key": ["CustomerID"],
+      "indexes": [
+        {"name": "PrimaryKey", "columns": ["CustomerID"], "unique": true, "primary": true},
+        {"name": "CompanyName", "columns": ["Company Name"], "unique": true}
+      ]
+    },
+    {
+      "name": "Order Lines",
+      "role": "data",
+      "columns": [
+        {"name": "LineID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "OrderID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Product", "type": "text", "size": 40, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "\"TBD\""}},
+        {"name": "Quantity", "type": "integer", "size": null, "precision": null, "scale": null, "required": true, "properties": {"DefaultValue": "1", "ValidationRule": ">0"}},
+        {"name": "Price", "type": "currency", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Discount", "type": "single", "size": null, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "0"}}
+      ],
+      "primary_key": ["LineID"],
+      "indexes": [
+        {"name": "PrimaryKey", "columns": ["LineID"], "unique": true, "primary": true},
+        {"name": "OrderProduct", "columns": ["OrderID", "Product"], "unique": true},
+        {"name": "OrdersOrderLines", "columns": ["OrderID"], "unique": false}
+      ]
+    },
+    {
+      "name": "Orders",
+      "role": "data",
+      "columns": [
+        {"name": "OrderID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "CustomerID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "OrderDate", "type": "datetime", "size": null, "precision": null, "scale": null, "required": true, "properties": {"DefaultValue": "Now()"}},
+        {"name": "Total", "type": "currency", "size": null, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "0"}},
+        {"name": "Shipped", "type": "yesno", "size": null, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "No"}},
+        {"name": "Reference", "type": "text", "size": 20, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "Format(Date(),\"yyyy\")"}}
+      ],
+      "primary_key": ["OrderID"],
+      "indexes": [
+        {"name": "PrimaryKey", "columns": ["OrderID"], "unique": true, "primary": true},
+        {"name": "CustomersOrders", "columns": ["CustomerID"], "unique": false}
+      ]
+    }
+  ],
+  "relationships": [
+    {"name": "CustomersOrders", "from_table": "Orders", "from_columns": ["CustomerID"], "to_table": "Customers", "to_columns": ["CustomerID"], "enforce": true, "cascade_update": false, "cascade_delete": false},
+    {"name": "OrdersOrderLines", "from_table": "Order Lines", "from_columns": ["OrderID"], "to_table": "Orders", "to_columns": ["OrderID"], "enforce": true, "cascade_update": false, "cascade_delete": true},
+    {"name": "CustomersOrdersLookup", "from_table": "Orders", "from_columns": ["CustomerID"], "to_table": "Customers", "to_columns": ["CustomerID"], "enforce": false, "cascade_update": false, "cascade_delete": false}
+  ]
+}

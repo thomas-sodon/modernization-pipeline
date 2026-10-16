@@ -1,0 +1,62 @@
+Option Compare Database
+Option Explicit
+
+Public Sub AddGizmoNoSee()
+    Dim rsNoSee As DAO.Recordset
+    Set rsNoSee = CurrentDb.OpenRecordset("Gizmos", dbOpenDynaset)
+    rsNoSee.AddNew
+    rsNoSee!Label = "fixture label"
+    rsNoSee.Update
+End Sub
+
+Public Sub AddGizmoSee()
+    Dim rsSee As DAO.Recordset
+    Set rsSee = CurrentDb.OpenRecordset("Gizmos", _
+        dbOpenDynaset, dbSeeChanges)
+    rsSee.AddNew
+    rsSee.Update
+End Sub
+
+Public Sub AddBinContinued()
+    Dim rsCont As DAO.Recordset
+    Set rsCont = CurrentDb.OpenRecordset("SELECT * FROM Bins", _
+        dbOpenDynaset)
+    rsCont.AddNew
+    rsCont.Update
+End Sub
+
+Public Sub CommentedOut()
+    ' Set rsOld = CurrentDb.OpenRecordset("Bins", dbOpenDynaset)
+    Dim strSQL As String
+    strSQL = "DELETE FROM Gizmos " & _
+             "WHERE GizmoID = 0"
+    CurrentDb.Execute strSQL, dbFailOnError ' dbSeeChanges
+    DoCmd.RunSQL "UPDATE Bins SET Code = Code"
+End Sub
+
+Public Sub FindBin()
+    Dim rsFind As DAO.Recordset
+    Set rsFind = CurrentDb.OpenRecordset("Bins", dbOpenTable)
+    rsFind.Index = "PrimaryKey"
+    rsFind.Seek "=", 1
+End Sub
+
+Public Sub RelinkBins()
+    Dim tdBins As DAO.TableDef
+    Set tdBins = CurrentDb.TableDefs("Bins")
+    tdBins.Connect = "ODBC;DSN=FixtureSource"
+    tdBins.RefreshLink
+    lngCount = DCount("*", "MSysObjects")
+End Sub
+
+Public Sub TouchEveryTable()
+    Dim tdAny As DAO.TableDef
+    Dim strDyn As String
+    Dim strFmt As String
+    For Each tdAny In CurrentDb.TableDefs
+        strDyn = "UPDATE " & tdAny.Name & " SET Touched = 1"
+        CurrentDb.Execute strDyn, dbFailOnError
+        strFmt = Replace("DELETE FROM {0} WHERE Stale = 1", "{0}", tdAny.Name)
+        CurrentDb.Execute strFmt, dbFailOnError + dbSeeChanges
+    Next tdAny
+End Sub

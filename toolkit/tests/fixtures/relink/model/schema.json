@@ -1,0 +1,68 @@
+{
+  "format_version": 1,
+  "relationships": [
+    {"cascade_delete": true, "cascade_update": false, "enforce": true, "from_columns": ["BinID"], "from_table": "Crates", "join": "inner", "name": "BinsCrates", "one_to_one": false, "to_columns": ["BinID"], "to_table": "Bins"},
+    {"cascade_delete": true, "cascade_update": false, "enforce": true, "from_columns": ["BinID"], "from_table": "Gizmos", "join": "inner", "name": "BinsGizmos", "one_to_one": false, "to_columns": ["BinID"], "to_table": "Bins"},
+    {"cascade_delete": true, "cascade_update": false, "enforce": true, "from_columns": ["CrateID"], "from_table": "Gizmos", "join": "inner", "name": "CratesGizmos", "one_to_one": false, "to_columns": ["CrateID"], "to_table": "Crates"}
+  ],
+  "source_kind": "accdt",
+  "tables": [
+    {
+      "name": "Bins",
+      "role": "data",
+      "columns": [
+        {"name": "BinID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "Code", "type": "text", "size": 10, "precision": null, "scale": null, "required": false},
+        {"name": "Ref", "type": "guid", "size": null, "precision": null, "scale": null, "required": false}
+      ],
+      "primary_key": ["BinID"],
+      "indexes": [{"name": "PrimaryKey", "columns": ["BinID"], "unique": true, "primary": true}]
+    },
+    {
+      "name": "Crates",
+      "role": "data",
+      "columns": [
+        {"name": "CrateID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "BinID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Packed", "type": "datetime", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "ThisColumnNameIsDeliberatelyMuchLongerThanSixtyThreeBytesForTests", "type": "byte", "size": null, "precision": null, "scale": null, "required": false}
+      ],
+      "primary_key": ["CrateID"],
+      "indexes": []
+    },
+    {
+      "name": "Gizmos",
+      "role": "data",
+      "columns": [
+        {"name": "GizmoID", "type": "autonumber", "size": null, "precision": null, "scale": null, "required": true},
+        {"name": "BinID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "CrateID", "type": "longinteger", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Label", "type": "text", "size": 40, "precision": null, "scale": null, "required": false},
+        {"name": "Weight", "type": "double", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Ratio", "type": "single", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Price", "type": "currency", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Exact", "type": "decimal", "size": null, "precision": 12, "scale": 3, "required": false},
+        {"name": "Active", "type": "yesno", "size": null, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "Yes"}},
+        {"name": "Photo", "type": "oleobject", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Tags", "type": "complex", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Site", "type": "hyperlink", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Doubled", "type": "decimal", "size": null, "precision": 18, "scale": 2, "required": false, "computed": true, "formula": "[Exact]*2"},
+        {"name": "Qty", "type": "integer", "size": null, "precision": null, "scale": null, "required": false, "properties": {"ValidationRule": ">=0"}},
+        {"name": "Stamp", "type": "datetime", "size": null, "precision": null, "scale": null, "required": false, "properties": {"DefaultValue": "Now()"}},
+        {"name": "Kind", "type": "text", "size": 20, "precision": null, "scale": null, "required": false, "properties": {"AllowMultipleValues": "-1"}}
+      ],
+      "primary_key": ["GizmoID"],
+      "indexes": []
+    },
+    {
+      "name": "LogLines",
+      "role": "data",
+      "columns": [
+        {"name": "Msg", "type": "memo", "size": null, "precision": null, "scale": null, "required": false},
+        {"name": "Level", "type": "byte", "size": null, "precision": null, "scale": null, "required": false}
+      ],
+      "primary_key": [],
+      "indexes": []
+    }
+  ]
+}
