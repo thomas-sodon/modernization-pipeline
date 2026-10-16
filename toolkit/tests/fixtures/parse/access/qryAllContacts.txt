@@ -1,0 +1,5 @@
+dbMemo "SQL" ="SELECT CustomerName AS ContactName, \"customer\" AS Kind FROM tblCustomers\015\012"
+    "UNION ALL SELECT SupplierName, \"supplier\" FROM tblSuppliers;\015\012"
+dbMemo "Connect" =""
+dbBoolean "ReturnsRecords" ="-1"
+dbInteger "ODBCTimeout" ="60"

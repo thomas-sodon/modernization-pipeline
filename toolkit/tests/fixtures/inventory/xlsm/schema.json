@@ -1,0 +1,114 @@
+{
+  "format_version": 1,
+  "relationships": [],
+  "source_kind": "xlsm",
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "Term",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        },
+        {
+          "name": "Meaning",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        }
+      ],
+      "indexes": [],
+      "name": "Glossary",
+      "primary_key": [],
+      "ref": "A1:B5",
+      "role": "documentation",
+      "sheet": "Notes"
+    },
+    {
+      "columns": [
+        {
+          "name": "QuoteNo",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "longinteger"
+        },
+        {
+          "name": "Item",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        },
+        {
+          "name": "Price",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "decimal"
+        }
+      ],
+      "indexes": [],
+      "name": "LineTable",
+      "primary_key": [],
+      "ref": "F1:H9",
+      "role": "data",
+      "sheet": "Quote"
+    },
+    {
+      "columns": [
+        {
+          "name": "QuoteNo",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "longinteger"
+        },
+        {
+          "name": "Customer",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        },
+        {
+          "name": "Net",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "decimal"
+        },
+        {
+          "computed": true,
+          "formula": "=[@Net]*TaxRate",
+          "name": "Total",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "decimal"
+        }
+      ],
+      "indexes": [],
+      "key_inferred": true,
+      "name": "QuoteTable",
+      "primary_key": [
+        "QuoteNo"
+      ],
+      "ref": "A1:D9",
+      "role": "data",
+      "sheet": "Quote"
+    }
+  ]
+}

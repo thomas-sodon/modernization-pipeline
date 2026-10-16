@@ -1,0 +1,122 @@
+{
+  "format_version": 1,
+  "modules": [
+    {
+      "code_file": "code/Form_frmWidgetOrder.txt",
+      "kind": "form",
+      "name": "Form_frmWidgetOrder",
+      "nonblank_lines": 10,
+      "procedures": [
+        {
+          "end": 5,
+          "kind": "Sub",
+          "lines": 4,
+          "name": "Form_Load",
+          "refs": {
+            "dao": true,
+            "docmd": [],
+            "forms": [],
+            "queries": [],
+            "reports": [],
+            "tables": [
+              "tblWidgets"
+            ]
+          },
+          "scope": "Public",
+          "start": 1,
+          "static": false
+        },
+        {
+          "end": 12,
+          "kind": "Sub",
+          "lines": 5,
+          "name": "txtStatus_AfterUpdate",
+          "refs": {
+            "dao": false,
+            "docmd": [],
+            "forms": [],
+            "queries": [
+              "qryOrderCounts"
+            ],
+            "reports": [],
+            "tables": []
+          },
+          "scope": "Public",
+          "start": 6,
+          "static": false
+        }
+      ]
+    },
+    {
+      "code_file": "code/clsWidgetCart.txt",
+      "kind": "class",
+      "name": "clsWidgetCart",
+      "nonblank_lines": 8,
+      "procedures": [
+        {
+          "end": 9,
+          "kind": "Sub",
+          "lines": 6,
+          "name": "AddWidget",
+          "refs": {
+            "dao": false,
+            "docmd": [],
+            "forms": [],
+            "queries": [],
+            "reports": [],
+            "tables": []
+          },
+          "scope": "Public",
+          "start": 3,
+          "static": false
+        }
+      ]
+    },
+    {
+      "code_file": "code/modWidgetMath.txt",
+      "kind": "standard",
+      "name": "modWidgetMath",
+      "nonblank_lines": 12,
+      "procedures": [
+        {
+          "end": 8,
+          "kind": "Sub",
+          "lines": 6,
+          "name": "AddTax",
+          "refs": {
+            "dao": false,
+            "docmd": [],
+            "forms": [
+              "frmWidgetOrder"
+            ],
+            "queries": [],
+            "reports": [],
+            "tables": []
+          },
+          "scope": "Public",
+          "start": 2,
+          "static": false
+        },
+        {
+          "end": 14,
+          "kind": "Sub",
+          "lines": 5,
+          "name": "ShipOrder",
+          "refs": {
+            "dao": true,
+            "docmd": [],
+            "forms": [],
+            "queries": [],
+            "reports": [],
+            "tables": [
+              "tblWidgetOrders"
+            ]
+          },
+          "scope": "Public",
+          "start": 9,
+          "static": false
+        }
+      ]
+    }
+  ]
+}

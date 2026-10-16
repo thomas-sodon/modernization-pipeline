@@ -1,0 +1,464 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modernization-pipeline.invalid/schemas/model.schema.json",
+  "title": "Object model (docs/contracts.md#object-model, docs/formats/model.md)",
+  "description": "One $defs entry per model file: schema, objects, procedures, datamacros. Validate a file against {\"$ref\": \"#/$defs/<file>\"}.",
+  "$defs": {
+    "neutral_type": {
+      "enum": ["text", "memo", "byte", "integer", "longinteger", "autonumber", "single", "double", "currency", "decimal", "datetime", "yesno", "hyperlink", "oleobject", "complex", "guid"]
+    },
+    "names": {"type": "array", "items": {"type": "string"}},
+    "nullable_string": {"type": ["string", "null"]},
+    "nullable_int": {"type": ["integer", "null"]},
+    "column": {
+      "type": "object",
+      "required": ["name", "type", "size", "precision", "scale", "required"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "type": {"$ref": "#/$defs/neutral_type"},
+        "size": {"$ref": "#/$defs/nullable_int"},
+        "precision": {"$ref": "#/$defs/nullable_int"},
+        "scale": {"$ref": "#/$defs/nullable_int"},
+        "required": {"type": "boolean"},
+        "source_type": {"$ref": "#/$defs/nullable_string"},
+        "sql_type": {"type": "string"},
+        "properties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/nullable_string"}},
+        "computed": {"type": "boolean"},
+        "formula": {"type": "string"},
+        "choices_from": {"$ref": "#/$defs/nullable_string"},
+        "type_inferred": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "index": {
+      "type": "object",
+      "required": ["name", "columns", "unique"],
+      "properties": {
+        "name": {"$ref": "#/$defs/nullable_string"},
+        "columns": {"$ref": "#/$defs/names"},
+        "unique": {"type": "boolean"},
+        "primary": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "table": {
+      "type": "object",
+      "required": ["name", "role", "columns", "primary_key", "indexes"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "role": {"enum": ["data", "documentation"]},
+        "columns": {"type": "array", "items": {"$ref": "#/$defs/column"}},
+        "primary_key": {"$ref": "#/$defs/names"},
+        "indexes": {"type": "array", "items": {"$ref": "#/$defs/index"}},
+        "properties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/nullable_string"}},
+        "sheet": {"type": "string"},
+        "ref": {"type": "string", "pattern": "^\\$?[A-Z]{1,3}\\$?[0-9]+(:\\$?[A-Z]{1,3}\\$?[0-9]+)?$"},
+        "key_inferred": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "relationship": {
+      "type": "object",
+      "required": ["name", "from_table", "from_columns", "to_table", "to_columns", "enforce", "cascade_update", "cascade_delete"],
+      "properties": {
+        "name": {"type": "string"},
+        "from_table": {"$ref": "#/$defs/nullable_string"},
+        "from_columns": {"type": "array", "items": {"$ref": "#/$defs/nullable_string"}},
+        "to_table": {"$ref": "#/$defs/nullable_string"},
+        "to_columns": {"type": "array", "items": {"$ref": "#/$defs/nullable_string"}},
+        "enforce": {"type": "boolean"},
+        "cascade_update": {"type": "boolean"},
+        "cascade_delete": {"type": "boolean"},
+        "one_to_one": {"type": "boolean"},
+        "join": {"enum": ["inner", "left", "right"]},
+        "inferred": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "schema": {
+      "type": "object",
+      "required": ["format_version", "source_kind", "tables", "relationships"],
+      "properties": {
+        "format_version": {"const": 1},
+        "source_kind": {"enum": ["accdt", "vcs-export", "accdb", "mdb", "xlsm"]},
+        "tables": {"type": "array", "items": {"$ref": "#/$defs/table"}},
+        "relationships": {"type": "array", "items": {"$ref": "#/$defs/relationship"}}
+      },
+      "additionalProperties": false
+    },
+    "action": {
+      "type": "object",
+      "required": ["action", "args"],
+      "properties": {
+        "action": {"type": "string"},
+        "args": {"type": "object", "additionalProperties": {"type": "string"}},
+        "depth": {"type": "integer", "minimum": 0},
+        "submacro": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "macro": {
+      "type": "object",
+      "required": ["name", "kind", "owner", "actions"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["standalone", "embedded"]},
+        "owner": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^(form|report):[^.]+(\\.[^.]+)+$"}]},
+        "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}}
+      },
+      "additionalProperties": false
+    },
+    "query": {
+      "type": "object",
+      "required": ["name", "storage", "query_type", "design", "sql", "params", "functions"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "storage": {"enum": ["design", "sql"]},
+        "query_type": {"enum": ["select", "union", "crosstab", "action", "pass-through"]},
+        "design": {"type": "object"},
+        "sql": {"$ref": "#/$defs/nullable_string"},
+        "params": {"$ref": "#/$defs/names"},
+        "functions": {"$ref": "#/$defs/names"},
+        "form_refs": {"$ref": "#/$defs/names"}
+      },
+      "additionalProperties": false
+    },
+    "section": {
+      "type": "object",
+      "required": ["name", "kind", "height"],
+      "properties": {
+        "name": {"type": "string"},
+        "kind": {"enum": ["form_header", "page_header", "detail", "page_footer", "form_footer", "group_header", "group_footer"]},
+        "height": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+    "tab_page": {
+      "type": "object",
+      "required": ["tab_control", "name", "caption", "index"],
+      "properties": {
+        "tab_control": {"$ref": "#/$defs/nullable_string"},
+        "name": {"type": "string"},
+        "caption": {"$ref": "#/$defs/nullable_string"},
+        "index": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+    "control": {
+      "type": "object",
+      "required": ["name", "type", "section", "caption", "left", "top", "width", "height", "control_source", "row_source", "source_object", "page", "events"],
+      "properties": {
+        "name": {"type": "string"},
+        "type": {"type": "string"},
+        "section": {"type": "string"},
+        "parent": {"$ref": "#/$defs/nullable_string"},
+        "caption": {"$ref": "#/$defs/nullable_string"},
+        "left": {"type": "integer"},
+        "top": {"type": "integer"},
+        "width": {"type": "integer"},
+        "height": {"type": "integer"},
+        "control_source": {"$ref": "#/$defs/nullable_string"},
+        "row_source": {"$ref": "#/$defs/nullable_string"},
+        "source_object": {"$ref": "#/$defs/nullable_string"},
+        "page": {"$ref": "#/$defs/nullable_string"},
+        "visible": {"type": "boolean"},
+        "events": {"type": "array", "items": {"type": "string", "pattern": "^[A-Za-z]+(:(macro|expression|named-macro))?$"}}
+      },
+      "additionalProperties": false
+    },
+    "formlike": {
+      "type": "object",
+      "required": ["name", "record_source", "has_code_behind", "sections", "tab_pages", "controls"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "record_source": {"$ref": "#/$defs/nullable_string"},
+        "caption": {"$ref": "#/$defs/nullable_string"},
+        "has_code_behind": {"type": "boolean"},
+        "events": {"type": "array", "items": {"type": "string"}},
+        "width": {"type": "integer"},
+        "default_view": {"$ref": "#/$defs/nullable_int"},
+        "sections": {"type": "array", "items": {"$ref": "#/$defs/section"}},
+        "tab_pages": {"type": "array", "items": {"$ref": "#/$defs/tab_page"}},
+        "controls": {"type": "array", "items": {"$ref": "#/$defs/control"}},
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["control_source"],
+            "properties": {
+              "control_source": {"$ref": "#/$defs/nullable_string"},
+              "group_header": {"type": "boolean"},
+              "group_footer": {"type": "boolean"},
+              "descending": {"type": "boolean"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "linked_table": {
+      "type": "object",
+      "required": ["name", "backend_kind", "backend"],
+      "properties": {
+        "name": {"type": "string"},
+        "backend_kind": {"enum": ["access", "odbc", "sharepoint", "excel", "text", "unresolved"]},
+        "backend": {"$ref": "#/$defs/nullable_int"},
+        "backend_file": {"$ref": "#/$defs/nullable_string"},
+        "source_table": {"$ref": "#/$defs/nullable_string"}
+      },
+      "additionalProperties": false
+    },
+    "anchor": {
+      "type": ["object", "null"],
+      "properties": {
+        "from": {"type": "string", "pattern": "^[A-Z]{1,3}[0-9]+$"},
+        "to": {"type": "string", "pattern": "^[A-Z]{1,3}[0-9]+$"}
+      },
+      "additionalProperties": false
+    },
+    "diag": {
+      "type": "object",
+      "required": ["code", "object"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "object": {"type": "string"},
+        "line": {"type": "integer"},
+        "count": {"type": "integer"},
+        "detail": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "sheet_layout": {
+      "type": "object",
+      "required": ["column_widths", "row_heights", "merged", "labels", "constants", "list_objects"],
+      "properties": {
+        "default_column_width": {"type": ["number", "null"]},
+        "default_row_height": {"type": ["number", "null"]},
+        "column_widths": {"type": "object", "additionalProperties": {"type": "number"}},
+        "row_heights": {"type": "object", "additionalProperties": {"type": "number"}},
+        "merged": {"$ref": "#/$defs/names"},
+        "labels": {
+          "type": "array",
+          "items": {"type": "object", "required": ["cell", "text"], "properties": {"cell": {"type": "string"}, "text": {"type": "string", "maxLength": 80}}, "additionalProperties": false}
+        },
+        "constants": {
+          "type": "array",
+          "items": {"type": "object", "required": ["cell", "value"], "properties": {"cell": {"type": "string"}, "value": {"type": "null"}}, "additionalProperties": false}
+        },
+        "list_objects": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "ref", "headers"], "properties": {"name": {"type": "string"}, "ref": {"type": "string"}, "headers": {"$ref": "#/$defs/names"}}, "additionalProperties": false}
+        }
+      },
+      "additionalProperties": false
+    },
+    "objects": {
+      "type": "object",
+      "required": ["format_version", "source_kind", "queries", "forms", "reports", "macros", "linked_tables", "facts", "diagnostics"],
+      "properties": {
+        "format_version": {"const": 1},
+        "source_kind": {"enum": ["accdt", "vcs-export", "accdb", "mdb", "xlsm"]},
+        "queries": {"type": "array", "items": {"$ref": "#/$defs/query"}},
+        "forms": {"type": "array", "items": {"$ref": "#/$defs/formlike"}},
+        "reports": {"type": "array", "items": {"$ref": "#/$defs/formlike"}},
+        "macros": {"type": "array", "items": {"$ref": "#/$defs/macro"}},
+        "linked_tables": {"type": "array", "items": {"$ref": "#/$defs/linked_table"}},
+        "code_behind": {"type": "array", "items": {"type": "string", "pattern": "^(form|report):.+$"}},
+        "object_properties": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "root", "properties"], "properties": {"name": {"type": "string"}, "root": {"type": "string"}, "properties": {"$ref": "#/$defs/names"}, "tags": {"$ref": "#/$defs/names"}}, "additionalProperties": false}
+        },
+        "vba_references": {"type": "array", "items": {"type": "object", "additionalProperties": {"type": "string"}}},
+        "database_properties": {"type": "object", "properties": {"names": {"$ref": "#/$defs/names"}}, "additionalProperties": false},
+        "facts": {
+          "type": "object",
+          "required": ["compiled_only", "vba_present"],
+          "properties": {
+            "compiled_only": {"type": "boolean"},
+            "vba_present": {"type": "boolean"},
+            "parts": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "encodings": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "sample_data_tables": {"type": "integer"},
+            "data_backends": {"type": "integer"},
+            "linked_tables": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "sample_outputs": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "formula_cells_by_sheet": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "table_columns": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "chartsheets": {"type": "integer", "minimum": 0},
+            "formula_cells_without_cached_value": {"type": "integer", "minimum": 0},
+            "array_formula_cells": {"type": "integer", "minimum": 0},
+            "data_copy": {"type": "array", "items": {"type": "object", "additionalProperties": {"type": ["string", "integer"]}}}
+          },
+          "additionalProperties": false
+        },
+        "diagnostics": {
+          "type": "object",
+          "required": ["errors", "warnings", "unknown_parts", "package_parts"],
+          "properties": {
+            "errors": {"type": "array", "items": {"$ref": "#/$defs/diag"}},
+            "warnings": {"type": "array", "items": {"$ref": "#/$defs/diag"}},
+            "unknown_parts": {"type": "object", "additionalProperties": {"type": "integer"}},
+            "package_parts": {"type": "object"}
+          },
+          "additionalProperties": false
+        },
+        "sheets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "role"],
+            "properties": {
+              "name": {"type": "string"},
+              "index": {"type": "integer"},
+              "state": {"type": "string"},
+              "role": {"enum": ["input", "template", "calculation", "dashboard", "documentation"]},
+              "role_inferred": {"type": "boolean"},
+              "formula_cells": {"type": "integer"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "layout": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sheet_layout"}},
+        "formula_blocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "sheet", "range", "cells"],
+            "properties": {
+              "name": {"type": "string", "pattern": "^.+![A-Z]{1,3}[0-9]+(:[A-Z]{1,3}[0-9]+)?$"},
+              "sheet": {"type": "string"},
+              "range": {"type": "string"},
+              "cells": {
+                "type": "array",
+                "items": {"type": "object", "required": ["address", "formula", "has_cached_value"], "properties": {"address": {"type": "string"}, "formula": {"type": "string"}, "has_cached_value": {"type": "boolean"}}, "additionalProperties": false}
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "calculated_columns": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "table", "column", "formula"], "properties": {"name": {"type": "string", "pattern": "^.+\\[.+\\]$"}, "table": {"type": "string"}, "column": {"type": "string"}, "formula": {"type": "string"}}, "additionalProperties": false}
+        },
+        "defined_names": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "refers_to", "broken"], "properties": {"name": {"type": "string"}, "scope_sheet": {"$ref": "#/$defs/nullable_int"}, "hidden": {"type": "boolean"}, "refers_to": {"type": "string"}, "broken": {"type": "boolean"}}, "additionalProperties": false}
+        },
+        "data_validations": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "sheet", "range", "type"], "properties": {"name": {"type": "string", "pattern": "^.+!.+$"}, "sheet": {"type": "string"}, "range": {"type": "string"}, "type": {"$ref": "#/$defs/nullable_string"}, "operator": {"$ref": "#/$defs/nullable_string"}, "formula1": {"$ref": "#/$defs/nullable_string"}, "formula2": {"$ref": "#/$defs/nullable_string"}, "allow_blank": {"type": "boolean"}}, "additionalProperties": false}
+        },
+        "charts": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "sheet", "type", "title", "anchor"], "properties": {"name": {"type": "string", "pattern": "^.+!.+$"}, "sheet": {"type": "string"}, "chart": {"type": "string"}, "type": {"$ref": "#/$defs/nullable_string"}, "title": {"$ref": "#/$defs/nullable_string"}, "anchor": {"$ref": "#/$defs/anchor"}, "series": {"type": "array", "items": {"type": "object", "additionalProperties": {"type": "string"}}}}, "additionalProperties": false}
+        },
+        "buttons": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "sheet", "caption", "macro", "anchor"], "properties": {"name": {"type": "string"}, "sheet": {"type": "string"}, "control": {"$ref": "#/$defs/nullable_string"}, "caption": {"$ref": "#/$defs/nullable_string"}, "macro": {"$ref": "#/$defs/nullable_string"}, "anchor": {"$ref": "#/$defs/anchor"}}, "additionalProperties": false}
+        },
+        "macro_assignments": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "sheet", "macro"], "properties": {"name": {"type": "string"}, "sheet": {"type": "string"}, "shape": {"type": "string"}, "kind": {"type": "string"}, "macro": {"type": "string"}, "caption": {"$ref": "#/$defs/nullable_string"}, "anchor": {"$ref": "#/$defs/anchor"}}, "additionalProperties": false}
+        },
+        "activex": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "clsid"], "properties": {"name": {"type": "string"}, "sheet": {"$ref": "#/$defs/nullable_string"}, "control": {"$ref": "#/$defs/nullable_string"}, "clsid": {"$ref": "#/$defs/nullable_string"}, "part": {"type": "string"}, "anchor": {"$ref": "#/$defs/anchor"}}, "additionalProperties": false}
+        },
+        "comments": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "userforms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "caption", "controls"],
+            "properties": {
+              "name": {"type": "string"},
+              "caption": {"$ref": "#/$defs/nullable_string"},
+              "controls": {
+                "type": "array",
+                "items": {"type": "object", "required": ["name", "type", "caption"], "properties": {"name": {"$ref": "#/$defs/nullable_string"}, "type": {"type": "string"}, "caption": {"$ref": "#/$defs/nullable_string"}, "left": {"type": ["number", "null"]}, "top": {"type": ["number", "null"]}, "width": {"type": ["number", "null"]}, "height": {"type": ["number", "null"]}}, "additionalProperties": false}
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "object",
+      "required": ["tables", "queries", "forms", "docmd", "dao"],
+      "properties": {
+        "tables": {"$ref": "#/$defs/names"},
+        "queries": {"$ref": "#/$defs/names"},
+        "forms": {"$ref": "#/$defs/names"},
+        "reports": {"$ref": "#/$defs/names"},
+        "docmd": {"$ref": "#/$defs/names"},
+        "dao": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "procedure": {
+      "type": "object",
+      "required": ["name", "kind", "start", "end", "refs"],
+      "properties": {
+        "name": {"type": "string"},
+        "kind": {"enum": ["Sub", "Function", "Property Get", "Property Let", "Property Set"]},
+        "scope": {"enum": ["Public", "Private", "Friend"]},
+        "static": {"type": "boolean"},
+        "start": {"type": "integer", "minimum": 1},
+        "end": {"type": "integer", "minimum": 1},
+        "lines": {"type": "integer"},
+        "refs": {"$ref": "#/$defs/refs"}
+      },
+      "additionalProperties": false
+    },
+    "module": {
+      "type": "object",
+      "required": ["name", "kind", "nonblank_lines", "code_file", "procedures"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["standard", "class", "form", "report", "document", "userform"]},
+        "nonblank_lines": {"type": "integer", "minimum": 0},
+        "code_file": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^code/[A-Za-z0-9._-]+\\.txt$"}]},
+        "procedures": {"type": "array", "items": {"$ref": "#/$defs/procedure"}},
+        "handlers": {"$ref": "#/$defs/names"}
+      },
+      "additionalProperties": false
+    },
+    "procedures": {
+      "type": "object",
+      "required": ["format_version", "modules"],
+      "properties": {
+        "format_version": {"const": 1},
+        "modules": {"type": "array", "items": {"$ref": "#/$defs/module"}}
+      },
+      "additionalProperties": false
+    },
+    "datamacro": {
+      "type": "object",
+      "required": ["table", "event", "actions"],
+      "properties": {
+        "table": {"type": "string"},
+        "event": {"type": "string"},
+        "name": {"$ref": "#/$defs/nullable_string"},
+        "params": {"$ref": "#/$defs/names"},
+        "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}}
+      },
+      "additionalProperties": false
+    },
+    "datamacros": {
+      "type": "object",
+      "required": ["format_version", "datamacros"],
+      "properties": {
+        "format_version": {"const": 1},
+        "datamacros": {"type": "array", "items": {"$ref": "#/$defs/datamacro"}},
+        "files": {
+          "type": "array",
+          "items": {"type": "object", "required": ["name", "table", "macros"], "properties": {"name": {"type": "string"}, "table": {"type": "string"}, "macros": {"type": "integer"}}, "additionalProperties": false}
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

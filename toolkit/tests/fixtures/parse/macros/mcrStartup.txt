@@ -1,0 +1,24 @@
+Version =196611
+PublishOption =1
+ColumnsShown =8
+Begin
+    Condition ="[TempVars]![StartMode]=\"admin\""
+    Action ="OpenForm"
+    Argument ="frmWidgetAdmin"
+    Argument ="0"
+End
+Begin
+    Action ="RunCode"
+    Argument ="InitWidgets()"
+End
+Begin
+    Comment ="_AXL:<?xml version=\"1.0\" encoding=\"UTF-16\" standalone=\"no\"?>\015\012<UserI"
+        "nterfaceMacro xmlns=\"http://schemas.microsoft.com/office/accessservices/2009/11/ap"
+        "plication\"><Statements><ConditionalBlock><If><Condition>[TempVars]![StartMode]=\"admin"
+        "\"</Condition>"
+End
+Begin
+    Comment ="<Statements><Action Name=\"OpenForm\"><Argument Name=\"FormName\">frmWidgetAdmin</A"
+        "rgument></Action></Statements></If></ConditionalBlock><Action Name=\"RunCode\"><Argument"
+        " Name=\"FunctionName\">InitWidgets()</Argument></Action></Statements></UserInterfaceMacro>"
+End

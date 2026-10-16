@@ -1,0 +1,108 @@
+#!/usr/bin/python3 -I
+"""PreToolUse hook for Bash in client sessions (docs/contracts.md#mp-bash-hook; decisions L3.3).
+
+Allows (exit 0, no output) only one simple command whose first word is exactly mp-run or mp-data:
+  mp-run --eng <path> --slot <slot> -- <one command string>
+  mp-data <any arguments>, except pin, which is allowed only as `mp-data pin --status`.
+Anything else, and input it cannot parse, exits 2 with the client-session message on stderr.
+Standard library only.
+"""
+
+import json
+import re
+import shlex
+import sys
+
+MESSAGE = (
+    "client session: run shell commands as mp-run --eng <eng> --slot <slot> -- '<command>', "
+    "or a data-plane call mp-data ..."
+)
+OPERATOR_CHARS = set("();<>|&")
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+SLOT = re.compile(r"^[a-z0-9_]{1,24}$")
+
+
+def raw_ok(command: str) -> bool:
+    """No newline or CR; no $ or backtick outside single quotes; balanced quotes."""
+    if "\n" in command or "\r" in command:
+        return False
+    state = None  # None, "'" or '"'
+    escaped = False
+    for ch in command:
+        if state == "'":
+            if ch == "'":
+                state = None
+            continue
+        if escaped:
+            escaped = False
+            if ch in "$`":
+                return False
+            continue
+        if ch == "\\":
+            escaped = True
+            continue
+        if ch in "$`":
+            return False
+        if state == '"':
+            if ch == '"':
+                state = None
+            continue
+        if ch in "'\"":
+            state = ch
+    return state is None and not escaped
+
+
+def tokens(command: str):
+    lex = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    lex.commenters = ""
+    return list(lex)
+
+
+def allowed(command: str) -> bool:
+    if not isinstance(command, str) or not command.strip() or not raw_ok(command):
+        return False
+    try:
+        toks = tokens(command)
+    except ValueError:
+        return False
+    if not toks:
+        return False
+    for t in toks:
+        if t and set(t) <= OPERATOR_CHARS:
+            return False
+    if ASSIGNMENT.match(toks[0]):
+        return False
+    if toks[0] == "mp-run":
+        return (
+            len(toks) == 7
+            and toks[1] == "--eng"
+            and toks[3] == "--slot"
+            and SLOT.match(toks[4]) is not None
+            and toks[5] == "--"
+            and toks[6] != ""
+        )
+    if toks[0] == "mp-data":
+        rest = toks[1:]
+        while rest and rest[0] in ("--slot", "--if-built"):
+            rest = rest[2:] if rest[0] == "--slot" else rest[1:]
+        if rest and rest[0] == "pin":
+            return rest == ["pin", "--status"]
+        return True
+    return False
+
+
+def main() -> int:
+    try:
+        data = json.load(sys.stdin)
+        command = data["tool_input"]["command"]
+    except Exception:  # noqa: BLE001 - unparsable input is blocked
+        command = None
+    if command is not None and allowed(command):
+        return 0
+    print(MESSAGE, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

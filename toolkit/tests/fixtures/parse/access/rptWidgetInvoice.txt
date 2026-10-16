@@ -1,0 +1,74 @@
+Version =20
+VersionRequired =20
+Begin Report
+    Width =10080
+    RecordSource ="qryOpenWidgetOrders"
+    Caption ="Widget invoice"
+    OnNoData ="[Event Procedure]"
+    Begin
+        Begin BreakLevel
+            GroupHeader = NotDefault
+            ControlSource ="OrderNo"
+        End
+        Begin BreakLevel
+            ControlSource ="OrderDate"
+            SortOrder = NotDefault
+        End
+        Begin PageHeader
+            Height =480
+            Name ="PageHeaderSection"
+            Begin
+                Begin Label
+                    Left =120
+                    Top =60
+                    Width =3000
+                    Height =360
+                    Name ="lblTitle"
+                    Caption ="Invoice"
+                End
+            End
+        End
+        Begin BreakHeader
+            Height =600
+            Name ="GroupHeader0"
+            Begin
+                Begin TextBox
+                    Left =120
+                    Top =120
+                    Width =2400
+                    Height =300
+                    Name ="txtOrder"
+                    ControlSource ="=\"Order \" & [OrderNo]"
+                End
+            End
+        End
+        Begin Section
+            Height =360
+            Name ="Detail"
+            Begin
+                Begin TextBox
+                    Left =120
+                    Width =4320
+                    Height =300
+                    Name ="txtCustomerLabel"
+                    ControlSource ="CustomerLabel"
+                End
+            End
+        End
+        Begin PageFooter
+            Height =360
+            Name ="PageFooterSection"
+        End
+    End
+End
+CodeBehindForm
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Compare Database
+
+Private Sub Report_NoData(Cancel As Integer)
+    MsgBox "Nothing to print"
+    Cancel = True
+End Sub

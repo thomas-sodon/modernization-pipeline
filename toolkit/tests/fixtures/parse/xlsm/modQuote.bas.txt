@@ -1,0 +1,15 @@
+Attribute VB_Name = "modQuote"
+Option Explicit
+
+' Quote helpers for a synthetic widget workbook.
+Public Sub PriceQuote()
+    Dim total As Double
+    total = Range("B4").Value * 1.2
+    Cells(6, 2).Value = total
+    Range("D2:D3").ClearContents
+End Sub
+
+Public Function QuoteTitle(ByVal customer As String) As String
+    QuoteTitle = "Quote for " & _
+        customer
+End Function

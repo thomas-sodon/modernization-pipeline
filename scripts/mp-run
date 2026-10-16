@@ -1,0 +1,117 @@
+#!/bin/bash
+# mp-run: run one agent command with the data zone hidden (docs/contracts.md#mp-run; decisions L3.1, L12.1).
+#
+#   mp-run --eng <records>/engagement.json --slot <slot> -- '<command>'
+#
+# Sources the env file (never data.env), exports MP_DB_SUFFIX=<slot> and MP_SANDBOX=mp-run, unsets
+# DOCKER_HOST and runs `bash -c '<command>'` in the pipeline checkout (unless the command starts
+# with `cd `) under bubblewrap: first the read-only binds (installed tools, Claude Code settings,
+# git hooks and config), then the masks (data zone, other engagements, pass store, the operator's
+# session sockets, data.env, scrub-map.json, Docker). bwrap applies mounts in order and a later
+# one wins, so the masks always come last. The exit code is the command's.
+set -u
+
+die() {
+  echo "mp-run: $1" >&2
+  echo "usage: mp-run --eng <records>/engagement.json --slot <slot> -- '<command>'" >&2
+  exit 2
+}
+
+[ $# -eq 6 ] && [ "$1" = --eng ] && [ "$3" = --slot ] && [ "$5" = -- ] ||
+  die "expected exactly: --eng <path> --slot <slot> -- '<command>'"
+eng=$2
+slot=$4
+cmd=$6
+[[ "$slot" =~ ^[a-z0-9_]{1,24}$ ]] || die "--slot must match ^[a-z0-9_]{1,24}$"
+[[ "$eng" == */engagement.json ]] && [ -f "$eng" ] || die "--eng must name an existing <records>/engagement.json"
+[ -n "$cmd" ] || die "empty command"
+records=$(cd "$(dirname "$eng")" && pwd)
+pl="$records/paths.local.json"
+[ -f "$pl" ] || die "paths.local.json is missing beside engagement.json"
+command -v jq >/dev/null 2>&1 || die "jq is missing: run the environment preflight"
+command -v bwrap >/dev/null 2>&1 || die "bwrap is missing (environment item bwrap)"
+pipeline=$(jq -r '.pipeline // empty' "$pl") || die "paths.local.json is not valid JSON"
+target_repo=$(jq -r '.target_repo // empty' "$pl")
+private=$(jq -r '.private // empty' "$pl")
+[ -n "$pipeline" ] && [ -d "$pipeline" ] || die "paths.local.json pipeline is missing"
+[ -n "$private" ] || die "paths.local.json private is missing"
+eng_id=$(jq -r '.id // empty' "$eng")
+
+ENV_FILE="$HOME/.config/modernization/env"
+[ -f "$ENV_FILE" ] || die "env file $ENV_FILE is missing: run the environment preflight"
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+export MP_DB_SUFFIX="$slot"
+export MP_SANDBOX=mp-run
+docker_host=${DOCKER_HOST:-}
+unset DOCKER_HOST
+
+uid=$(id -u)
+user=$(id -un)
+xdg=${XDG_RUNTIME_DIR:-/run/user/$uid}
+
+args=(--unshare-user --unshare-pid --die-with-parent --dev-bind / / --proc /proc)
+
+# 1. read-only binds (each when present)
+ro() { [ -e "$1" ] && args+=(--ro-bind "$1" "$1"); return 0; }
+ro "$HOME/.local/bin"
+ro "$HOME/.local/share/modernization"
+ro "$HOME/.local/share/uv"
+ro "$HOME/.config/modernization"
+ro "$HOME/.claude"
+ro "$HOME/.claude.json"
+[ -n "$eng_id" ] && ro "$HOME/engagements/$eng_id/client-session.json"
+ro "$pipeline/.claude"
+ro "$pipeline/.mcp.json"
+for repo in "$pipeline" "$target_repo"; do
+  [ -n "$repo" ] && [ -d "$repo" ] || continue
+  common=$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
+  ro "$common/hooks"
+  ro "$common/config"
+done
+
+# 2. masks, always after the read-only binds
+for d in sources datasets workbook reference goldens corpus results logs assets; do
+  mkdir -p "$private/$d"
+  args+=(--tmpfs "$private/$d")
+done
+own=$(cd "$private/.." 2>/dev/null && pwd -P)
+if [ -d "$HOME/engagements" ]; then
+  for d in "$HOME"/engagements/*/; do
+    d=${d%/}
+    [ -d "$d" ] || continue
+    [ "$(cd "$d" && pwd -P)" = "$own" ] && continue
+    for sub in private record; do
+      [ -d "$d/$sub" ] && args+=(--tmpfs "$d/$sub")
+    done
+  done
+fi
+store=${PASSWORD_STORE_DIR:-$HOME/.password-store}
+[ -d "$store" ] && args+=(--tmpfs "$store")
+[ -d "$xdg" ] && args+=(--tmpfs "$xdg")
+tmux_dir="${TMUX_TMPDIR:-/tmp}/tmux-$uid"
+[ -d "$tmux_dir" ] && args+=(--tmpfs "$tmux_dir")
+[ -d "/run/screen/S-$user" ] && args+=(--tmpfs "/run/screen/S-$user")
+null() { [ -e "$1" ] && args+=(--ro-bind /dev/null "$1"); return 0; }
+null "$private/scrub-map.json"
+null "$HOME/.config/modernization/data.env"
+[ -e /var/run/docker.sock ] && args+=(--ro-bind /dev/null "$(realpath /var/run/docker.sock)")
+case "$docker_host" in
+  unix://*)
+    sock=${docker_host#unix://}
+    case "$sock" in
+      "$xdg"/*) ;;
+      *) null "$sock" ;;
+    esac
+    ;;
+esac
+
+# 3. working directory: the pipeline unless the command moves itself
+dir=$pipeline
+case "$cmd" in
+  "cd "*) dir=$PWD ;;
+esac
+[ -d "$dir" ] || dir=$pipeline
+args+=(--chdir "$dir")
+
+exec bwrap "${args[@]}" -- bash -c "$cmd"

@@ -1,0 +1,26 @@
+# Forbidden-file hooks (decisions E1). The same hooks guard the pipeline and target repos;
+# toolkit guard runs them and refuses a config that defines them differently.
+repos:
+  - repo: local
+    hooks:
+      - id: forbid-source-files
+        name: forbid source files and private data
+        language: fail
+        entry: "Never commit client or Microsoft source files, exports or private data:"
+        files: '(?i)([.](accdt|accdb|accde|mdb|mde|laccdb|ldb|mdw|xlsm|xlsb|xls|xlam|bas|cls|frm|frx|msg|bak)$|^(private|data|vendor)/)'
+        exclude: '^toolkit/tests/fixtures/'
+      - id: forbid-sample-outputs
+        name: forbid rendered sample outputs
+        language: fail
+        entry: "Never commit rendered sample outputs (PDF, EML, XLSX):"
+        files: '(?i)[.](pdf|eml|xlsx)$'
+        exclude: '^toolkit/tests/fixtures/'
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--enforce-all', '--maxkb=1024']
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
+    hooks:
+      - id: ruff-check

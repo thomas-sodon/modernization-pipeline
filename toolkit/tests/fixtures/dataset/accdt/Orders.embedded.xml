@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:od="urn:schemas-microsoft-com:officedata">
+<xsd:schema>
+<xsd:element name="dataroot"><xsd:complexType><xsd:sequence><xsd:element ref="Orders" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+<xsd:element name="Orders"><xsd:complexType><xsd:sequence>
+<xsd:element name="OrderID" minOccurs="1" od:jetType="autonumber" od:sqlSType="int" type="xsd:int"/>
+<xsd:element name="Notes" minOccurs="0" od:jetType="memo" od:sqlSType="ntext"><xsd:simpleType><xsd:restriction base="xsd:string"/></xsd:simpleType></xsd:element>
+</xsd:sequence></xsd:complexType></xsd:element>
+</xsd:schema>
+<dataroot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Orders><OrderID>10</OrderID><CustomerID>1</CustomerID><Weight>0.1</Weight><Ratio>0.30000000000000004</Ratio><Notes>Two lines&#13;
+of notes</Notes><Token>{6F9619FF-8B86-D011-B42D-00C04FC964FF}</Token><Files><FileName>spec.txt</FileName></Files></Orders>
+<Orders><OrderID>11</OrderID><CustomerID>1</CustomerID><Weight>2.5</Weight><Ratio>1E-07</Ratio><Notes>She said "rush"</Notes></Orders>
+<Orders><OrderID>12</OrderID><Notes>\N</Notes></Orders>
+<Orders><OrderID>13</OrderID><CustomerID>3</CustomerID><Weight>-0</Weight><Ratio>1</Ratio><Notes/></Orders>
+</dataroot>
+</root>

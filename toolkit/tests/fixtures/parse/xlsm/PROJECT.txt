@@ -1,0 +1,15 @@
+ID="{5B0C2E1A-7D44-4E1F-9A3B-2C6D8E0F1A2B}"
+Document=ThisWorkbook/&H00000000
+Document=shQuote/&H00000000
+Module=modQuote
+Class=clsLine
+BaseClass=frmQuote
+Name="QuoteProject"
+HelpContextID="0"
+VersionCompatible32="393222000"
+[Host Extender Info]
+&H00000001={3832D640-CF90-11CF-8E43-00A0C911005A};VBE;&H00000000
+
+[Workspace]
+ThisWorkbook=0, 0, 0, 0, C
+modQuote=25, 25, 900, 500, Z

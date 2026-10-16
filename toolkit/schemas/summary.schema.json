@@ -1,0 +1,444 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/thomas-sodon/modernization-pipeline/toolkit/schemas/summary.schema.json",
+  "title": "mp-data and toolkit quiet summary (docs/contracts.md#summary-schema)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "command",
+    "exit_code"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "ok",
+        "recorded",
+        "no-data",
+        "not-built",
+        "failed",
+        "error"
+      ]
+    },
+    "command": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$",
+      "maxLength": 60
+    },
+    "exit_code": {
+      "type": "integer"
+    },
+    "engagement": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "maxLength": 40
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "rates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_cell": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pooled": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "coverage_adjusted": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "characterization": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "empty_share": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "match": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "cells": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dataset",
+              "db",
+              "status",
+              "passed",
+              "failed",
+              "errors",
+              "skipped",
+              "not_implemented",
+              "total",
+              "rate"
+            ],
+            "properties": {
+              "dataset": {
+                "type": "string"
+              },
+              "db": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "ok",
+                  "empty"
+                ]
+              },
+              "passed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "errors": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "not_implemented": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rate": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "suite",
+              "dataset",
+              "db",
+              "passed",
+              "failed",
+              "errors",
+              "skipped",
+              "not_implemented",
+              "total",
+              "rate"
+            ],
+            "properties": {
+              "suite": {
+                "type": "string"
+              },
+              "dataset": {
+                "type": "string"
+              },
+              "db": {
+                "type": "string"
+              },
+              "passed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "errors": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "not_implemented": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rate": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dataset": {
+            "type": "string"
+          },
+          "db": {
+            "type": "string"
+          },
+          "matched": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "table",
+          "dialect",
+          "dataset_rows",
+          "target_rows",
+          "digest_match",
+          "fk_orphans"
+        ],
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "dialect": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dataset_rows": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "target_rows": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "digest_match": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "fk_orphans": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "sha256s": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "columns": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "mismatches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit",
+          "dataset",
+          "db",
+          "columns"
+        ],
+        "properties": {
+          "unit": {
+            "type": "string"
+          },
+          "dataset": {
+            "type": "string"
+          },
+          "db": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^/"
+      }
+    },
+    "messages": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "log": {
+      "type": "string",
+      "pattern": "^/"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "recorded",
+              "no-data",
+              "not-built"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "enum": [
+              1,
+              5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "not": {
+              "const": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "not-built"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "log"
+          ]
+        }
+      }
+    }
+  ]
+}

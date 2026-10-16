@@ -1,0 +1,1 @@
+{"Info": {"Class": "clsDbTableDef"}, "Items": {"Name": "tblPriceList", "Connect": ";DATABASE=C:\\WidgetData\\widgets_be.accdb", "SourceTableName": "tblPriceList"}}

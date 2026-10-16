@@ -1,0 +1,11 @@
+Notes on the greenhouse helpers, in our own words.
+
+The yield helper divides the count of seeds that came up by the count planted and turns the
+ratio into a percentage with two decimals; a tray with nothing planted scores zero.
+
+The reshelving routine walks every tray on one bench and, for each tray marked as wilted, moves
+it to the quarantine shelf in the north glasshouse and logs a short line for the misting crew.
+
+The misting helper maps relative humidity to a number of minutes: drier air gets longer misting
+(twelve minutes under thirty-five percent, seven under fifty-five, three under seventy-five) and
+humid air gets none.

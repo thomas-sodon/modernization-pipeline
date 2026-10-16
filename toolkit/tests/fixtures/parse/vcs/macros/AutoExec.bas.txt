@@ -1,0 +1,12 @@
+Version =196611
+ColumnsShown =0
+Begin
+    Action ="OpenForm"
+    Argument ="frmCustomer"
+End
+Begin
+    Comment ="_AXL:<?xml version=\"1.0\" encoding=\"UTF-16\" standalone=\"no\"?>\015\012<UserI"
+        "nterfaceMacro xmlns=\"http://schemas.microsoft.com/office/accessservices/2009/11/application\">"
+        "<Statements><Action Name=\"OpenForm\"><Argument Name=\"FormName\">frmCustomer</Argument>"
+        "</Action></Statements></UserInterfaceMacro>"
+End

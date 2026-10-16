@@ -1,0 +1,31 @@
+Version =21
+VersionRequired =20
+Begin Form
+    Width =5040
+    RecordSource ="tblPottingMix"
+    Caption ="Potting mix recipes"
+    Begin
+        Begin Section
+            Height =2160
+            Name ="Detail"
+            Begin
+                Begin Label
+                    Left =360
+                    Top =240
+                    Width =2160
+                    Height =300
+                    Name ="lblRecipe"
+                    Caption ="Recipe"
+                End
+                Begin TextBox
+                    Left =2880
+                    Top =240
+                    Width =1800
+                    Height =300
+                    Name ="txtPeatShare"
+                    ControlSource ="PeatShare"
+                End
+            End
+        End
+    End
+End

@@ -1,0 +1,227 @@
+{
+  "code_behind": [
+    "form:frmWidgetOrder"
+  ],
+  "diagnostics": {
+    "errors": [],
+    "package_parts": {},
+    "unknown_parts": {},
+    "warnings": []
+  },
+  "facts": {
+    "compiled_only": false,
+    "data_backends": 0,
+    "linked_tables": {},
+    "parts": {
+      "dataMacros/*.axl": 1,
+      "objects/*.txt": 7,
+      "objects/*.xsd": 3,
+      "properties/*.axl": 3,
+      "properties/*.xml": 10
+    },
+    "vba_present": true
+  },
+  "format_version": 1,
+  "forms": [
+    {
+      "caption": "Widget order",
+      "controls": [
+        {
+          "caption": null,
+          "control_source": null,
+          "events": [
+            "AfterUpdate"
+          ],
+          "height": 100,
+          "left": 0,
+          "name": "txtStatus",
+          "page": null,
+          "row_source": null,
+          "section": "Detail",
+          "source_object": null,
+          "top": 0,
+          "type": "TextBox",
+          "width": 100
+        },
+        {
+          "caption": null,
+          "control_source": null,
+          "events": [
+            "Click:macro"
+          ],
+          "height": 100,
+          "left": 0,
+          "name": "cmdShip",
+          "page": null,
+          "row_source": null,
+          "section": "Detail",
+          "source_object": null,
+          "top": 0,
+          "type": "CommandButton",
+          "width": 100
+        }
+      ],
+      "default_view": 0,
+      "events": [
+        "Load"
+      ],
+      "has_code_behind": true,
+      "name": "frmWidgetOrder",
+      "record_source": "qryOpenWidgetOrders",
+      "sections": [
+        {
+          "height": 3000,
+          "kind": "detail",
+          "name": "Detail"
+        }
+      ],
+      "tab_pages": [],
+      "width": 9000
+    }
+  ],
+  "linked_tables": [],
+  "macros": [
+    {
+      "actions": [
+        {
+          "action": "OpenForm",
+          "args": {
+            "FormName": "frmWidgetOrder"
+          }
+        }
+      ],
+      "kind": "standalone",
+      "name": "AutoExec",
+      "owner": null
+    },
+    {
+      "actions": [
+        {
+          "action": "SetProperty",
+          "args": {
+            "Property": "Enabled"
+          }
+        },
+        {
+          "action": "Requery",
+          "args": {}
+        }
+      ],
+      "kind": "embedded",
+      "name": "frmWidgetOrder.cmdShip.Click",
+      "owner": "form:frmWidgetOrder.cmdShip.Click"
+    }
+  ],
+  "queries": [
+    {
+      "design": {},
+      "functions": [],
+      "name": "qryAllContacts",
+      "params": [],
+      "query_type": "union",
+      "sql": "SELECT CustomerName FROM tblCustomers UNION SELECT WidgetName FROM [tblWidgets]",
+      "storage": "sql"
+    },
+    {
+      "design": {
+        "group_by": [],
+        "having": null,
+        "input_tables": [
+          {
+            "alias": null,
+            "name": "tblWidgetOrders"
+          },
+          {
+            "alias": null,
+            "name": "tblCustomers"
+          }
+        ],
+        "joins": [
+          {
+            "expression": "x",
+            "flag": 2,
+            "left": "tblCustomers",
+            "right": "tblWidgetOrders"
+          }
+        ],
+        "operation": 1,
+        "option": 0,
+        "order_by": [],
+        "output_columns": [],
+        "where": null
+      },
+      "functions": [
+        "Nz"
+      ],
+      "name": "qryOpenWidgetOrders",
+      "params": [
+        "StartDate"
+      ],
+      "query_type": "select",
+      "sql": null,
+      "storage": "design"
+    },
+    {
+      "design": {
+        "group_by": [
+          "CustomerID"
+        ],
+        "having": null,
+        "input_tables": [
+          {
+            "alias": null,
+            "name": "qryOpenWidgetOrders"
+          }
+        ],
+        "joins": [],
+        "operation": 1,
+        "option": 0,
+        "order_by": [],
+        "output_columns": [],
+        "where": null
+      },
+      "functions": [],
+      "name": "qryOrderCounts",
+      "params": [],
+      "query_type": "select",
+      "sql": null,
+      "storage": "design"
+    }
+  ],
+  "reports": [
+    {
+      "caption": null,
+      "controls": [
+        {
+          "caption": null,
+          "control_source": null,
+          "events": [],
+          "height": 100,
+          "left": 0,
+          "name": "txtOrderID",
+          "page": null,
+          "row_source": null,
+          "section": "Detail",
+          "source_object": null,
+          "top": 0,
+          "type": "TextBox",
+          "width": 100
+        }
+      ],
+      "events": [],
+      "has_code_behind": false,
+      "name": "rptWidgetInvoice",
+      "record_source": "SELECT * FROM tblWidgetOrders",
+      "sections": [
+        {
+          "height": 2000,
+          "kind": "detail",
+          "name": "Detail"
+        }
+      ],
+      "tab_pages": [],
+      "width": 9000
+    }
+  ],
+  "source_kind": "accdt"
+}

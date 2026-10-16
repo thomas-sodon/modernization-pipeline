@@ -1,0 +1,37 @@
+Attribute VB_Name = "modGreenhouse"
+Option Compare Database
+Option Explicit
+
+' Seedling tray bookkeeping for the invented greenhouse ledger.
+Public Function TrayYieldScore(ByVal sprouted As Long, ByVal sown As Long) As Double
+    If sown <= 0 Then
+        TrayYieldScore = 0
+        Exit Function
+    End If
+    TrayYieldScore = Round((sprouted / sown) * 100#, 2)
+End Function
+
+Public Sub ReshelveWiltedTrays(ByVal benchCode As String)
+    Dim rs As DAO.Recordset
+    Set rs = CurrentDb.OpenRecordset("SELECT TrayKey, Wilted FROM tblTrays WHERE Bench = '" & benchCode & "'")
+    Do While Not rs.EOF
+        If rs!Wilted = True Then
+            rs.Edit
+            rs!Bench = "QUARANTINE-NORTH-GLASSHOUSE"
+            rs.Update
+            Debug.Print "moved tray to the quarantine bench for misting"
+        End If
+        rs.MoveNext
+    Loop
+    rs.Close
+    Set rs = Nothing
+End Sub
+
+Public Function MistingMinutesForHumidity(ByVal relativeHumidity As Double) As Integer
+    Select Case relativeHumidity
+        Case Is < 35: MistingMinutesForHumidity = 12
+        Case Is < 55: MistingMinutesForHumidity = 7
+        Case Is < 75: MistingMinutesForHumidity = 3
+        Case Else: MistingMinutesForHumidity = 0
+    End Select
+End Function

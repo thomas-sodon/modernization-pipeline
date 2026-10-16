@@ -1,0 +1,35 @@
+VERSION 5.00
+Begin {C62A69F0-16DC-11CE-9E98-00AA00704CBD} frmQuote 
+   Caption         =   "New quote"
+   ClientHeight    =   3015
+   ClientLeft      =   120
+   ClientTop       =   465
+   ClientWidth     =   4560
+   OleObjectBlob   =   "frmQuote.frx":0000
+   StartUpPosition =   1  'CenterOwner
+   Begin Forms.CommandButton.1 cmdOK 
+      Caption         =   "OK"
+      Height          =   375
+      Left            =   3120
+      TabIndex        =   1
+      Top             =   2520
+      Width           =   1215
+   End
+   Begin Forms.TextBox.1 txtCustomer 
+      Height          =   285
+      Left            =   240
+      TabIndex        =   0
+      Top             =   480
+      Width           =   2895
+   End
+End
+Attribute VB_Name = "frmQuote"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Explicit
+
+Private Sub cmdOK_Click()
+    Me.Hide
+End Sub

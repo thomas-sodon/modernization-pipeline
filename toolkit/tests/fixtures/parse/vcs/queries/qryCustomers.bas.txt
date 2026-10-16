@@ -1,0 +1,14 @@
+Operation =1
+Option =0
+Begin InputTables
+    Name ="tblCustomers"
+End
+Begin OutputColumns
+    Expression ="tblCustomers.CustomerID"
+    Expression ="tblCustomers.CustomerName"
+End
+Begin OrderBy
+    Expression ="tblCustomers.CustomerName"
+    Flag =0
+End
+dbBoolean "ReturnsRecords" ="-1"

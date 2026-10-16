@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-16" standalone="no"?>
+<DataMacros xmlns="http://schemas.microsoft.com/office/accessservices/2009/11/application">
+<DataMacro Event="BeforeChange"><Statements><Comment>reject empty orders</Comment><ConditionalBlock><If><Condition>[Quantity]&lt;=0</Condition><Statements><Action Name="RaiseError"><Argument Name="Number">101</Argument><Argument Name="Description">Quantity must be positive</Argument></Action></Statements></If><Else><Statements><Action Name="SetLocalVar"><Argument Name="Name">ok</Argument><Argument Name="Value">True</Argument></Action></Statements></Else></ConditionalBlock></Statements></DataMacro>
+<DataMacro Event="AfterInsert"><Statements><LookUpRecord><Data Alias="C"><Reference>tblCustomers</Reference><WhereCondition>[C].[CustomerID]=[tblWidgetOrders].[CustomerID]</WhereCondition></Data><Statements><EditRecord><Data Alias="C"/><Statements><Action Collapsed="true" Name="SetField"><Argument Name="Field">C.LastOrder</Argument><Argument Name="Value">[tblWidgetOrders].[OrderDate]</Argument></Action></Statements></EditRecord></Statements></LookUpRecord></Statements></DataMacro>
+<DataMacro Name="dmArchiveOrder"><Parameters><Parameter Name="prmOrderNo"/></Parameters><Statements><Action Name="StopMacro"/></Statements></DataMacro>
+</DataMacros>

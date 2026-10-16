@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataroot>
+<tblWidgetOrders><OrderNo>1</OrderNo><CustomerID>7</CustomerID><OrderDate>2024-03-01T00:00:00</OrderDate><Status>SENTINEL-ROW-VALUE-7731</Status><Order_x0020_Notes>synthetic note</Order_x0020_Notes></tblWidgetOrders>
+<tblWidgetOrders><OrderNo>2</OrderNo><CustomerID>8</CustomerID><OrderDate>2024-03-02T00:00:00</OrderDate><Status>Open</Status></tblWidgetOrders>
+</dataroot>

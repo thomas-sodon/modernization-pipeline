@@ -1,0 +1,124 @@
+{
+  "format_version": 1,
+  "relationships": [
+    {
+      "cascade_delete": false,
+      "cascade_update": false,
+      "enforce": true,
+      "from_columns": [
+        "CustomerID"
+      ],
+      "from_table": "tblWidgetOrders",
+      "name": "tblCustomerstblWidgetOrders",
+      "to_columns": [
+        "CustomerID"
+      ],
+      "to_table": "tblCustomers"
+    }
+  ],
+  "source_kind": "accdt",
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "CustomerID",
+          "precision": null,
+          "required": true,
+          "scale": null,
+          "size": null,
+          "type": "autonumber"
+        },
+        {
+          "name": "CustomerName",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        },
+        {
+          "name": "City",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        }
+      ],
+      "indexes": [],
+      "name": "tblCustomers",
+      "primary_key": [
+        "CustomerID"
+      ],
+      "role": "data"
+    },
+    {
+      "columns": [
+        {
+          "name": "OrderID",
+          "precision": null,
+          "required": true,
+          "scale": null,
+          "size": null,
+          "type": "autonumber"
+        },
+        {
+          "name": "CustomerID",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "longinteger"
+        },
+        {
+          "name": "OrderDate",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "datetime"
+        },
+        {
+          "name": "Status",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        }
+      ],
+      "indexes": [],
+      "name": "tblWidgetOrders",
+      "primary_key": [
+        "OrderID"
+      ],
+      "role": "data"
+    },
+    {
+      "columns": [
+        {
+          "name": "WidgetID",
+          "precision": null,
+          "required": true,
+          "scale": null,
+          "size": null,
+          "type": "autonumber"
+        },
+        {
+          "name": "WidgetName",
+          "precision": null,
+          "required": false,
+          "scale": null,
+          "size": null,
+          "type": "text"
+        }
+      ],
+      "indexes": [],
+      "name": "tblWidgets",
+      "primary_key": [
+        "WidgetID"
+      ],
+      "role": "data"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+CustomerID,Company,Active,Balance,Created
+1,Sprocket Supply,1,12.5,2024-03-01T00:00:00
+2,\N,0,0,2024-03-02T09:30:00
+3,"Gear, Cog & Co",1,-4.25,\N
+4,"",\N,1000000.0001,2024-02-29T00:00:00

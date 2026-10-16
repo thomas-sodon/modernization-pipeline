@@ -1,0 +1,46 @@
+{
+  "format_version": 1,
+  "kind": "synthetic",
+  "load_order": [
+    "Widget Customers",
+    "Orders"
+  ],
+  "name": "seed-1",
+  "schema_sha256": "7837afaab578ef4fa2d74c2448a7ca6946840539566a66a0012e2a9e163a042a",
+  "seed": 1,
+  "tables": [
+    {
+      "columns": [
+        {"name": "CustomerID", "type": "autonumber"},
+        {"name": "Company", "type": "text"},
+        {"name": "Active", "type": "yesno"},
+        {"name": "Balance", "type": "currency"},
+        {"name": "Created", "type": "datetime"}
+      ],
+      "file": "tables/Widget_Customers-225f06c7.csv",
+      "name": "Widget Customers",
+      "omitted_columns": [
+        {"name": "Logo", "reason": "oleobject", "type": "oleobject"}
+      ],
+      "rows": 4,
+      "sha256": "408583784f7a22c96920f86cea5b5d3ae69671c5c50e54d680121c84fdb28106"
+    },
+    {
+      "columns": [
+        {"name": "OrderID", "type": "autonumber"},
+        {"name": "CustomerID", "type": "longinteger"},
+        {"name": "Weight", "type": "single"},
+        {"name": "Ratio", "type": "double"},
+        {"name": "Notes", "type": "memo"},
+        {"name": "Token", "type": "guid"}
+      ],
+      "file": "tables/Orders.csv",
+      "name": "Orders",
+      "omitted_columns": [
+        {"name": "Files", "reason": "complex", "type": "complex"}
+      ],
+      "rows": 4,
+      "sha256": "f6659344f4fda5ad0667d2b9aa422276379feda68969436a419b6ddc59ea0cba"
+    }
+  ]
+}

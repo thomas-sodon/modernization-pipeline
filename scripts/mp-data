@@ -1,0 +1,142 @@
+#!/bin/bash
+# mp-data: the client data plane (docs/contracts.md#mp-data; decisions L1, L12.2-L12.4).
+#
+#   mp-data [--slot <slot>] [--if-built] <command> <args>     (<args> include <records>/engagement.json)
+#   mp-data pin <sha> | mp-data pin --status                   (operator only, in a terminal)
+#
+# Steps 1-4 here: source the env file (never data.env), export MP_DB_SUFFIX, read the engagement
+# and paths.local.json with jq, pick the toolkit root (bootstrap: the pipeline worktree; otherwise
+# the reviewed release named in toolkit.pin), --if-built, then hand over to toolkit/dataplane.py,
+# which runs the toolkit child in its bubblewrap jail and prints exactly one summary line.
+set -u
+
+COMMANDS=" fetch parse dataset guard reference golden stage1 equivalence results purge push gh pin "
+SHARE="$HOME/.local/share/modernization"
+PIN_FILE="$SHARE/toolkit.pin"
+ENV_FILE="$HOME/.config/modernization/env"
+
+summary() { # status command exit_code message
+  if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg s "$1" --arg c "$2" --argjson e "$3" --arg m "$4" \
+      '{status: $s, command: $c, exit_code: $e} + (if $m == "" then {} else {messages: [$m[0:200]]} end)'
+  else
+    printf '{"status":"%s","command":"%s","exit_code":%s}\n' "$1" "$2" "$3"
+  fi
+}
+die() { # command message
+  summary error "$1" 2 "$2"
+  exit 2
+}
+
+slot=orchestrator
+if_built=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --slot)
+      [ $# -ge 2 ] || die mp-data "--slot needs a value"
+      slot=$2
+      shift 2
+      ;;
+    --slot=*)
+      slot=${1#--slot=}
+      shift
+      ;;
+    --if-built)
+      if_built=1
+      shift
+      ;;
+    -*) die mp-data "unknown global flag (global flags come before the command)" ;;
+    *) break ;;
+  esac
+done
+[ $# -ge 1 ] || die mp-data "usage: mp-data [--slot <slot>] [--if-built] <command> <eng> [args]"
+cmd=$1
+shift
+case "$COMMANDS" in
+  *" $cmd "*) ;;
+  *) die mp-data "unknown command (allowed:$COMMANDS)" ;;
+esac
+[[ "$slot" =~ ^[a-z0-9_]{1,24}$ ]] || die "$cmd" "--slot must match ^[a-z0-9_]{1,24}$"
+for a in "$@"; do
+  case "$a" in
+    --slot | --slot=* | --if-built) die "$cmd" "global flags come before the command" ;;
+  esac
+done
+
+[ -f "$ENV_FILE" ] || die "$cmd" "env file $ENV_FILE is missing: run the environment preflight"
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+export MP_DB_SUFFIX="$slot"
+unset MP_SANDBOX
+
+# ---------------------------------------------------------------- pin (operator only)
+if [ "$cmd" = pin ]; then
+  if [ $# -eq 1 ] && [ "$1" = --status ]; then
+    if [ -s "$PIN_FILE" ]; then
+      summary ok pin 0 "pinned $(head -c 40 "$PIN_FILE" | tr -cd '0-9a-f')"
+      exit 0
+    fi
+    summary failed pin 1 "nothing pinned: run mp-data pin <sha>"
+    exit 1
+  fi
+  [ $# -eq 1 ] || die pin "usage: mp-data pin <sha> | mp-data pin --status"
+  [ -t 0 ] && [ -t 1 ] || die pin "mp-data pin runs only in the operator's terminal"
+  sha=$1
+  [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || die pin "<sha> must be a full 40-hex commit"
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || die pin "the current directory is not a git checkout of the pipeline"
+  git -C "$top" fetch origin >&2 || die pin "git fetch origin failed"
+  git -C "$top" merge-base --is-ancestor "$sha" origin/main 2>/dev/null || die pin "$sha is not an ancestor of origin/main"
+  rel="$SHARE/toolkit@$sha"
+  mkdir -p "$SHARE"
+  if [ ! -d "$rel" ]; then
+    git -C "$top" worktree add --detach "$rel" "$sha" >&2 || die pin "git worktree add failed"
+  fi
+  (cd "$rel" && UV_CACHE_DIR="$SHARE/uv-cache" uv sync --locked --all-groups >&2) || die pin "uv sync failed in the release"
+  (cd "$rel" && UV_CACHE_DIR="$SHARE/uv-cache" uv run --no-sync toolkit fetch --jars >&2) || die pin "toolkit fetch --jars failed in the release"
+  "$rel/scripts/install-mp-data.sh" >&2 || die pin "install-mp-data.sh failed"
+  printf '%s\n' "$sha" >"$PIN_FILE.tmp" && mv -f "$PIN_FILE.tmp" "$PIN_FILE"
+  summary ok pin 0 "pinned $sha"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- engagement and toolkit root
+eng=
+for a in "$@"; do
+  case "$a" in
+    */engagement.json)
+      eng=$a
+      break
+      ;;
+  esac
+done
+[ -n "$eng" ] || die "$cmd" "no <records>/engagement.json argument"
+[ -f "$eng" ] || die "$cmd" "engagement.json not found"
+records=$(dirname "$eng")
+[ -f "$records/paths.local.json" ] || die "$cmd" "paths.local.json is missing beside engagement.json"
+command -v jq >/dev/null 2>&1 || die "$cmd" "jq is missing: run the environment preflight"
+bootstrap=$(jq -r '.bootstrap == true' "$eng" 2>/dev/null) || die "$cmd" "engagement.json is not valid JSON"
+pipeline=$(jq -r '.pipeline // empty' "$records/paths.local.json" 2>/dev/null) || die "$cmd" "paths.local.json is not valid JSON"
+
+if [ "$bootstrap" = true ]; then
+  [ -n "$pipeline" ] && [ -d "$pipeline" ] || die "$cmd" "paths.local.json pipeline is missing"
+  root=$pipeline
+  uv_flags=()
+else
+  [ -s "$PIN_FILE" ] || die "$cmd" "no reviewed toolkit: run mp-data pin <sha>"
+  sha=$(head -n 1 "$PIN_FILE")
+  [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || die "$cmd" "toolkit.pin does not hold a commit"
+  root="$SHARE/toolkit@$sha"
+  [ -d "$root" ] || die "$cmd" "no reviewed toolkit: run mp-data pin <sha>"
+  export UV_CACHE_DIR="$SHARE/uv-cache"
+  uv_flags=(--no-sync)
+fi
+
+if [ "$if_built" = 1 ] && [ "$bootstrap" = true ] && [ "$cmd" != pin ] && [ ! -f "$root/toolkit/commands/$cmd.py" ]; then
+  id=$(jq -r '.id // empty' "$eng")
+  jq -cn --arg c "$cmd" --arg id "$id" \
+    '{status: "not-built", command: $c, exit_code: 0} + (if ($id | test("^[a-z][a-z0-9]*(-[a-z0-9]+)*$")) then {engagement: $id} else {} end)'
+  exit 0
+fi
+
+cd "$root" || die "$cmd" "cannot change to the toolkit root"
+exec uv run --quiet "${uv_flags[@]}" --project "$root" python -m toolkit.dataplane "$cmd" "$@"
