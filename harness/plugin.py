@@ -9,7 +9,10 @@ Load it with `-p equivalence.plugin` (vendored) or `-p harness.plugin` (pipeline
 - `--eq-only-areas <area,...>`: select only units of these areas and set `MP_ONLY_AREAS`.
 
 The runner (`tests/test_units.py`) gets one test per manifest unit whose golden has status ok on
-the dataset, id `test_unit[<area>::<unit>::<dataset>::<db>]`. Inputs:
+the dataset, id `test_unit[<area>::<unit>::<dataset>::<db>]`. A test whose set-up fails (the
+adapter cannot be created, `load_dataset` raises, or another fixture fails) carries the JUnit
+property `equivalence.setup-error`: JSON from `adapter.describe_failure` (phase, exception class
+names, table / column / constraint / code / sqlstate when known; never the message). Inputs:
 
 - `goldens/manifest.json` and `goldens/params.json` next to the package directory;
 - seed datasets `goldens/synthetic/seed-N/input`, expected files under `goldens/`;
@@ -51,6 +54,7 @@ RUNNER_NAME = "equivalence-runner"
 REDACT_NAME = "equivalence-redact"
 NI_TYPE = "equivalence.not-implemented"
 MISMATCH_PROPERTY = "equivalence.mismatch"
+SETUP_PROPERTY = "equivalence.setup-error"
 AREA_RE = re.compile(r"^[a-z][a-z0-9_]{1,29}$")
 DATASET_RE = re.compile(r"^(engagement|seed-\d+)$")
 
@@ -339,10 +343,15 @@ class Runner:
                 ).get("units", {})
         self.not_implemented: dict[str, str] = {}
         self.mismatches: dict[str, compare.Mismatch] = {}
+        # the exception make_adapter raised and its description (design names only)
+        self.load_failure: tuple[BaseException, dict] | None = None
         self.redactor = None
         if self.redacting:
             self.redactor = Redactor(
-                self.private / "logs", f"{self.dataset}-{self.db}", self.mismatches
+                self.private / "logs",
+                f"{self.dataset}-{self.db}",
+                self.mismatches,
+                self.setup_failure,
             )
         self._stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
 
@@ -390,10 +399,39 @@ class Runner:
     # -------------------------------------------------------------- running
 
     def make_adapter(self):
-        cls = adapter_mod.load_entrypoint(self.adapter_config["entrypoint"])
-        inst = cls()
-        inst.load_dataset(self.dataset_dir)
+        phase = "adapter"
+        try:
+            cls = adapter_mod.load_entrypoint(self.adapter_config["entrypoint"])
+            inst = cls()
+            phase = "load_dataset"
+            inst.load_dataset(self.dataset_dir)
+        except Exception as exc:
+            self.load_failure = (exc, adapter_mod.describe_failure(exc, phase))
+            raise
         return inst
+
+    def setup_failure(self, call) -> dict | None:
+        """The description of a set-up error: the adapter or dataset-load failure when the
+        call raised it, else the exception class names (phase `setup`)."""
+        excinfo = getattr(call, "excinfo", None)
+        if excinfo is None:
+            return None
+        if self.load_failure is not None and excinfo.value is self.load_failure[0]:
+            return self.load_failure[1]
+        return adapter_mod.describe_failure(excinfo.value, "setup")
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_makereport(self, item, call):
+        outcome = yield
+        report = outcome.get_result()
+        if report.when != "setup" or not report.failed:
+            return
+        info = self.setup_failure(call)
+        if info is not None:
+            # JUnit writes the properties of the teardown report, copied from the item
+            item.user_properties.append(
+                (SETUP_PROPERTY, json.dumps(info, sort_keys=True))
+            )
 
     def golden(self, case: Case):
         if case.entry is None:

@@ -129,6 +129,7 @@ def context(eng: dict, stack: dict) -> dict:
         "target_root": (eng.get("target") or {}).get("root") or ".",
         "timezone": app.get("timezone") or "UTC",
         "use_tz": bool(app.get("use_tz", False)),
+        "landing": app.get("landing") or "users:redirect",
         "cloud_provider": cloud_provider(eng),
         "uv_version": stack.get("uv", ""),
         "postgres_image": (images.get("postgres") or {}).get("image", ""),

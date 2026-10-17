@@ -69,6 +69,10 @@ uv run python -m pytest -c pyproject.toml --rootdir . ../equivalence/tests -p eq
   `<test>: <n> rows differ in columns [...]`. The full detail goes to `PRIVATE/logs/`, together with
   a datacompy report that has counts and column names but no values. If `PRIVATE/goldens/engagement/`
   holds the recorded outputs, that report counts the differences per column.
+- When your data cannot be loaded, every test reports an error such as
+  `load_dataset failed: LoadError (table Orders, column Notes, code blank)`: the error types and the
+  table, column or constraint involved, never the values. The JUnit file holds the same names in the
+  `equivalence.setup-error` property of each test.
 - Options that would send the app's output past pytest's capture are refused on your data, so
   printed or logged values cannot reach the terminal: `-s` (`--capture=no`), `--capture=tee-sys`,
   live logging (`log_cli = true` in the app's pytest settings, or `--log-cli-level`), `--log-file`,

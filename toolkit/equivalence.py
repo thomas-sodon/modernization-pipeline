@@ -11,6 +11,11 @@ One pytest process per cell, with the plugin options of docs/contracts.md#harnes
 
 Counts come from each cell's JUnit file (`junit-equivalence-<dataset>-<db>.xml`). Nothing here
 reads golden values; summaries and the matrix carry counts, unit ids and column names only.
+
+A unit whose set-up failed carries the harness's `equivalence.setup-error` property (class and
+design names, never the exception message); its summary `units[].reason` is
+`<phase> failed: <classes> (table T, column C, constraint K, code X, sqlstate S)` and the summary
+`messages` get one line per cell and distinct failure, `cell <dataset>/<db>: <same text>`.
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from harness import adapter as harness_adapter
 from toolkit import quiet
 
 REFERENCE_ENTRYPOINT = "toolkit.commands.reference:ReferenceAdapter"
@@ -34,6 +40,7 @@ AREA_RE = re.compile(r"^[a-z][a-z0-9_]{1,29}$")
 SEED_RE = re.compile(r"^seed-\d+$")
 NI_TYPE = "equivalence.not-implemented"
 MISMATCH_PROPERTY = "equivalence.mismatch"
+SETUP_PROPERTY = "equivalence.setup-error"
 DATA_PLANE_PREFIX = "mpdata_test_"
 FORMAT_VERSION = 1
 DB_LABELS = ("postgresql", "mssql")
@@ -86,6 +93,8 @@ class CellResult:
     units: list = field(default_factory=list)
     mismatches: list = field(default_factory=list)
     collected: list = field(default_factory=list)
+    # distinct set-up failure texts of the cell (class and design names only), in first-seen order
+    setup_failures: list = field(default_factory=list)
 
     def matrix_entry(self) -> dict:
         return {
@@ -411,12 +420,15 @@ def parse_junit(path: Path, dataset: str, db: str) -> CellResult:
         else:
             status = "passed"
             res.passed += 1
+        reason = setup_reason(tc) if status == "error" else None
+        if reason is not None and reason not in res.setup_failures:
+            res.setup_failures.append(reason)
         if status != "passed":
             res.units.append(
                 {
                     "id": unit,
                     "status": status,
-                    "reason": None,
+                    "reason": reason,
                     "dataset": dataset,
                     "db": db,
                 }
@@ -440,6 +452,22 @@ def parse_junit(path: Path, dataset: str, db: str) -> CellResult:
         res.status = "ok"
         res.rate = round(res.passed / res.total, 4)
     return res
+
+
+def setup_reason(tc) -> str | None:
+    """The set-up failure of a JUnit test case as text, from the harness's
+    `equivalence.setup-error` property, every field checked again (design names only)."""
+    for prop in tc.iter("property"):
+        if prop.get("name") != SETUP_PROPERTY:
+            continue
+        try:
+            info = json.loads(prop.get("value") or "{}")
+        except json.JSONDecodeError:
+            continue
+        info = harness_adapter.clean_failure(info)
+        if info is not None:
+            return harness_adapter.failure_text(info)
+    return None
 
 
 def rates(results: list[CellResult], kept_units: int) -> dict | None:
@@ -697,6 +725,10 @@ def finish(
     all_empty = all(r.status == "empty" for r in results)
     ni = sum(r.not_implemented for r in results)
     status = None
+    # set-up failures first, so the 50-message cap never hides them
+    messages[:0] = [
+        f"cell {r.dataset}/{r.db}: {text}" for r in results for text in r.setup_failures
+    ]
     if error:
         code = 2
     elif all_empty:

@@ -4,11 +4,12 @@ CANARY- may reach stdout, stderr or the JUnit file; the private log must hold th
 
 from __future__ import annotations
 
+import json
 import xml.etree.ElementTree as ET
 
 import pytest
 
-from ._support import KEY, make_target, run_pytest
+from ._support import KEY, make_target, run_pytest, set_stub
 
 GOLDEN = [[1, "CANARY-1"], [2, "CANARY-2"], [3, "CANARY-3"]]
 OBTAINED = [[1, "CANARY-1"], [2, "CANARY-22"], [4, "CANARY-4"]]
@@ -121,6 +122,44 @@ def test_redaction_is_on_for_any_dataset_with_equivalence_redact(tmp_path):
     assert "CANARY-" not in proc.stdout + proc.stderr
 
 
+def test_a_failed_dataset_load_names_classes_and_design_names_only(tmp_path):
+    target, private = canary_target(tmp_path)
+    stub = json.loads((target / "stub.json").read_text(encoding="utf-8"))
+    stub["fail_load"] = "Key (ParentID)=(CANARY-70) is not present in Widgets"
+    stub["fail_load_names"] = {"table": "Widgets", "column": "ParentID"}
+    stub["fail_load_diag"] = {
+        "constraint_name": "FK_Widgets_Parent",
+        "sqlstate": "23503",
+    }
+    set_stub(target, stub)
+    junit = tmp_path / "junit.xml"
+    proc = run_pytest(
+        target,
+        *ENGAGEMENT_CELL,
+        "--junitxml",
+        str(junit),
+        "-v",
+        "-rA",
+        "--tb=long",
+        env={"EQUIVALENCE_PRIVATE": str(private), "EQUIVALENCE_DIGEST_KEY": KEY.hex()},
+    )
+    assert proc.returncode == 1
+    assert "CANARY-" not in proc.stdout + proc.stderr
+    assert "CANARY-" not in junit.read_text(encoding="utf-8")
+    cases = list(ET.parse(junit).getroot().iter("testcase"))
+    assert len(cases) == 4
+    for tc in cases:
+        error = tc.find("error")
+        assert error is not None
+        assert (
+            "load_dataset failed: WidgetLoadError <- WidgetDbError (table Widgets, "
+            "column ParentID, constraint FK_Widgets_Parent, sqlstate 23503)"
+        ) in error.get("message")
+    # the private log keeps the message
+    text = "".join(p.read_text(encoding="utf-8") for p in (private / "logs").iterdir())
+    assert "CANARY-70" in text
+
+
 ENGAGEMENT_CELL = (
     "--eq-adapter",
     "adapter.toml",
@@ -143,7 +182,16 @@ ENGAGEMENT_CELL = (
         ("--pdb",),
         ("--debug", "{tmp}/debug.log"),
     ],
-    ids=["s", "capture-no", "tee-sys", "log_cli", "log-cli-level", "log-file", "pdb", "debug"],
+    ids=[
+        "s",
+        "capture-no",
+        "tee-sys",
+        "log_cli",
+        "log-cli-level",
+        "log-file",
+        "pdb",
+        "debug",
+    ],
 )
 def test_redacted_runs_refuse_output_that_skips_capture(tmp_path, extra):
     target, private = canary_target(tmp_path)
@@ -180,9 +228,19 @@ def test_seed_runs_with_equivalence_redact_refuse_s_and_others_allow_it(tmp_path
     units = {"qryCanary": {"area": "orders", "golden": {"seed-1": GOLDEN}}}
     stub = {"rows": {"seed-1": {"qryCanary": OBTAINED}}}
     target = make_target(tmp_path / "t", units, private=private, stub=stub)
-    args = ("--eq-adapter", "adapter.toml", "--eq-dataset", "seed-1", "--eq-db", "stub", "-s")
+    args = (
+        "--eq-adapter",
+        "adapter.toml",
+        "--eq-dataset",
+        "seed-1",
+        "--eq-db",
+        "stub",
+        "-s",
+    )
     proc = run_pytest(
-        target, *args, env={"EQUIVALENCE_REDACT": "1", "EQUIVALENCE_PRIVATE": str(private)}
+        target,
+        *args,
+        env={"EQUIVALENCE_REDACT": "1", "EQUIVALENCE_PRIVATE": str(private)},
     )
     assert proc.returncode == 4, proc.stdout + proc.stderr
     assert "CANARY-" not in proc.stdout + proc.stderr

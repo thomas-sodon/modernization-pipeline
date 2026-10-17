@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}
+  __area_title__: {{ object }}
+{% endblock title %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center my-3">
+    <h1 class="h3">{{ object }}</h1>
+    <div>
+      <a class="btn btn-primary" href="{% url '__area__:update' object.pk %}">Edit</a>
+      <a class="btn btn-secondary" href="{% url '__area__:print' object.pk %}">Print</a>
+      <a class="btn btn-secondary"
+         href="{% url '__area__:print' object.pk %}?format=pdf">PDF</a>
+    </div>
+  </div>
+  <p>
+    <a href="{% url '__area__:list' %}">Back to the list</a>
+  </p>
+{% endblock content %}

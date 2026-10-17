@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags django_tables2 partials %}
+
+{% block title %}
+  __area_title__
+{% endblock title %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center my-3">
+    <h1 class="h3">__area_title__</h1>
+    <a class="btn btn-primary" href="{% url '__area__:create' %}">New</a>
+  </div>
+  <form method="get"
+        hx-get="{% url '__area__:list' %}"
+        hx-target="#record-table"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-trigger="change, submit">
+    {{ filter.form|crispy }}
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+  </form>
+  {# The container boosts the sort and paging links, which swap only this partial. #}
+  {# The table switches the boost off on its rows (tables.UNBOOSTED_ROWS), so a #}
+  {# record link loads its page normally instead of inside the list. #}
+  {% partialdef record-table inline %}
+  <div id="record-table"
+       hx-boost="true"
+       hx-target="#record-table"
+       hx-swap="outerHTML">{% render_table table %}</div>
+{% endpartialdef record-table %}
+{% endblock content %}

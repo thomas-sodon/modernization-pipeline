@@ -2,9 +2,10 @@
 
 A hookwrapper on `pytest_runtest_makereport` writes each report's longrepr and captured sections
 to a log under `$EQUIVALENCE_PRIVATE/logs/`, then replaces the longrepr of a failed report with
-`<nodeid>: <n> rows differ in columns [...]` (counts and column names only) and empties the
-captured sections, so no value reaches the terminal, the JUnit file or the toolkit's output.
-A skip keeps its reason only when it is `not-implemented: <unit>`.
+`<nodeid>: <n> rows differ in columns [...]` (counts and column names only), or for a set-up error
+`<nodeid>: load_dataset failed: <exception classes> (table T, column C, ...)` (class and design
+names only, never the exception message), and empties the captured sections, so no value
+reaches the terminal, the JUnit file or the toolkit's output. A skip keeps its reason only when it is `not-implemented: <unit>`.
 
 The plugin also turns off warning capture for redacted runs (a warning message may quote values)
 and runs with `-p no:cacheprovider`. Before any conftest loads, it refuses (usage error, exit 4)
@@ -21,17 +22,21 @@ from pathlib import Path
 
 import pytest
 
+from .adapter import failure_text
+
 NOT_IMPLEMENTED = "not-implemented: "
 
 
 class Redactor:
     """Registered by the plugin as `equivalence-redact` when redaction is on."""
 
-    def __init__(self, log_dir, label: str, mismatches: dict):
+    def __init__(self, log_dir, label: str, mismatches: dict, setup_failure=None):
         self.log_dir = Path(log_dir)
         stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
         self.path = self.log_dir / f"{stamp}-equivalence-{label}-{os.getpid()}.log"
         self.mismatches = mismatches  # nodeid -> compare.Mismatch
+        # call -> failure description (adapter.describe_failure) of a set-up error, or None
+        self.setup_failure = setup_failure
         self._opened = False
 
     def _write(self, text: str) -> None:
@@ -54,17 +59,22 @@ class Redactor:
             parts.append(f"--- {name}\n{content}\n")
         self._write("".join(parts))
 
-    def summary_line(self, nodeid: str) -> str:
+    def summary_line(self, nodeid: str, failure: dict | None = None) -> str:
+        if failure is not None:
+            return f"{nodeid}: {failure_text(failure)} (details in the private log)"
         m = self.mismatches.get(nodeid)
         if m is None:
             return f"{nodeid}: 0 rows differ in columns [] (an error; details in the private log)"
         return f"{nodeid}: {m.message()}"
 
-    def redact(self, report) -> None:
+    def redact(self, report, call=None) -> None:
         if report.longrepr is not None or report.sections:
             self.write_report(report)
         if report.failed:
-            report.longrepr = self.summary_line(report.nodeid)
+            failure = None
+            if report.when == "setup" and call is not None and self.setup_failure:
+                failure = self.setup_failure(call)
+            report.longrepr = self.summary_line(report.nodeid, failure)
         elif report.skipped and report.longrepr is not None:
             reason = ""
             if isinstance(report.longrepr, tuple) and len(report.longrepr) == 3:
@@ -79,4 +89,4 @@ class Redactor:
     def pytest_runtest_makereport(self, item, call):
         outcome = yield
         report = outcome.get_result()
-        self.redact(report)
+        self.redact(report, call)

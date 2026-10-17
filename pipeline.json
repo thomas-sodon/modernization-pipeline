@@ -475,11 +475,11 @@
         "S6"
       ],
       "check": "grep -q '^export PLAYWRIGHT_BROWSERS_PATH=' $HOME/.config/modernization/env && . $HOME/.config/modernization/env && (cd {{p.target}}/app && uv run python -c \"from playwright.sync_api import sync_playwright as s; p=s().start(); p.chromium.launch().close(); p.stop()\")",
-      "fix": "F=$HOME/.config/modernization/env && umask 077 && { grep -v '^export PLAYWRIGHT_BROWSERS_PATH=' \"$F\"; echo \"export PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright\"; } > \"$F.new\" && mv \"$F.new\" \"$F\" && . \"$F\" && (cd {{p.target}}/app && uv run playwright install chromium)",
+      "fix": "F=$HOME/.config/modernization/env && umask 077 && { grep -v '^export PLAYWRIGHT_BROWSERS_PATH=' \"$F\"; echo \"export PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright\"; } > \"$F.new\" && mv \"$F.new\" \"$F\" && . \"$F\" && (cd {{p.target}}/app && { uv run python -c \"from playwright.sync_api import sync_playwright as s; p=s().start(); p.chromium.launch().close(); p.stop()\" || uv run playwright install chromium; })",
       "writes": [
         "PLAYWRIGHT_BROWSERS_PATH"
       ],
-      "note": "playwright 1.58.0 uses chromium-1208, which is preinstalled here and launches; 1.56.0 refuses Ubuntu 26.04. Never use --with-deps (no sudo; the system libraries are present)."
+      "note": "playwright 1.58.0 uses chromium-1208, which is preinstalled here and launches; 1.56.0 refuses Ubuntu 26.04. Never use --with-deps (no sudo; the system libraries are present). The fix installs a browser only when the preinstalled one does not launch: `playwright install` refuses Ubuntu 26.04 even when chromium-1208 is already present."
     },
     {
       "id": "libreoffice",

@@ -9,8 +9,10 @@ import io
 import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connection
@@ -253,6 +255,159 @@ def test_row_errors_name_table_row_and_column_but_no_value(tmp_path):
     assert column in text
     assert invented not in text
     assert database_counts([table]) == {table: 0}
+
+
+@pytest.mark.django_db
+def test_a_load_error_names_table_column_and_code_for_the_harness(tmp_path):
+    """The equivalence harness reports a failed load by these attributes only."""
+    directory, table, column, invented = _broken_copy(tmp_path)
+    with pytest.raises(loader.LoadError) as info:
+        loader.load_dataset(directory)
+    assert info.value.table == table
+    assert column in info.value.column.split("/")
+    assert info.value.code.endswith("DoesNotExist")
+    for name in ("table", "column", "code", "constraint"):
+        assert invented not in str(getattr(info.value, name))
+
+
+# ------------------------------------------------------------------ zero-length text
+
+
+def _text_fields(model, *, primary_key: bool) -> list:
+    """Required text columns (NULL refused, full_clean's blank check on) that are
+    the key, or that are no key and not unique (so a second "" cannot clash)."""
+    out = []
+    for f in model._meta.concrete_fields:  # noqa: SLF001
+        if f.is_relation or f.get_internal_type() not in ("CharField", "TextField"):
+            continue
+        if f.null or f.blank or f.choices or f.primary_key is not primary_key:
+            continue
+        if not primary_key and f.unique:
+            continue
+        out.append(f)
+    return out
+
+
+def _zero_length_copy(tmp_path: Path) -> tuple[Path, list[tuple[str, str, Any]]]:
+    """A copy of seed-1 with invented zero-length strings where Access allows them
+    (Required + AllowZeroLength: NULL refused, "" kept): one more row in a table
+    keyed by a required text column, whose key is "", a child row whose foreign
+    key points at that "" key, and "" in a required text column that is no key.
+    Returns (dir, [(table, column, key of the row)])."""
+    source = seed_directory(1)
+    target = tmp_path / "zero_length"
+    shutil.copytree(source, target)
+    meta, tables = eqds.read_dataset(target)
+    rows = {name: list(tables[name]) for name in meta["load_order"]}
+    edits: list[tuple[str, str, Any]] = []
+    parent = None
+    for name in meta["load_order"]:
+        model = loader.model_for(name)
+        if model is None or not rows[name] or not _text_fields(model, primary_key=True):
+            continue
+        opts = model._meta  # noqa: SLF001
+        if (
+            any(f.unique and not f.primary_key for f in opts.concrete_fields)
+            or opts.unique_together
+            or opts.constraints
+        ):
+            continue  # a copied row would clash on another unique column
+        column = model._meta.pk.column  # noqa: SLF001
+        rows[name].append({**rows[name][0], column: ""})
+        edits.append((name, column, ""))
+        parent = model
+        break
+    if parent is None:
+        pytest.fail("seed-1 has no table keyed by a required text column")
+    for name in meta["load_order"]:
+        model = loader.model_for(name)
+        fks = [
+            f
+            for f in (model._meta.concrete_fields if model else [])  # noqa: SLF001
+            if f.is_relation and f.related_model is parent and model is not parent
+        ]
+        if fks and rows[name]:
+            key = model._meta.pk.column  # noqa: SLF001
+            rows[name][0][fks[0].column] = ""
+            edits.append((name, fks[0].column, rows[name][0][key]))
+            break
+    else:
+        pytest.fail("seed-1 has no row referencing the text-keyed table")
+    for name in meta["load_order"]:
+        model = loader.model_for(name)
+        fields = _text_fields(model, primary_key=False) if model else []
+        if fields and rows[name]:
+            key = model._meta.pk.column  # noqa: SLF001
+            rows[name][0][fields[0].column] = ""
+            edits.append((name, fields[0].column, rows[name][0][key]))
+            break
+    else:
+        pytest.fail("seed-1 has no required text column outside a key")
+    eqds.write_dataset(
+        target,
+        meta,
+        [
+            {**t, "rows": rows.get(t["name"]) or list(eqds.iter_table(target, t))}
+            for t in meta["tables"]
+        ],
+    )
+    return target, edits
+
+
+@pytest.mark.django_db
+def test_zero_length_strings_load_as_the_dataset_carries_them(tmp_path):
+    """Access keeps "" in a Required text column whose AllowZeroLength is Yes (a
+    key included), so the dataset can carry it: the load stores "" (never NULL,
+    never a row error), and a foreign key holding "" points at the "" key."""
+    directory, edits = _zero_length_copy(tmp_path)
+    meta = json.loads((directory / "dataset.json").read_text("utf-8"))
+    expected = {
+        t["name"]: t["rows"] for t in meta["tables"] if loader.model_for(t["name"])
+    }
+    try:
+        loader.load_dataset(directory, flush=True)
+    except loader.LoadError as exc:
+        pytest.fail(f"{exc}: {exc.problems}")
+    assert database_counts(expected) == expected
+    for table, column, key in edits:
+        model = loader.model_for(table)
+        fld = next(f for f in model._meta.concrete_fields if f.column == column)  # noqa: SLF001
+        assert stored_value(fld, key) == "", f"{table}.{column}"
+
+
+def _required_text_foreign_keys() -> list:
+    return [
+        f
+        for model in loader.legacy_models()
+        for f in model._meta.concrete_fields  # noqa: SLF001
+        if f.is_relation
+        and not (f.null or f.blank)
+        and f.target_field.get_internal_type() in ("CharField", "TextField")
+    ]
+
+
+def test_a_required_foreign_key_holding_zero_length_keeps_it():
+    """A Required foreign key holding "" (pointing at a "" text key) passes the
+    load's validation: only its `blank` error is dropped, never another error."""
+    fks = _required_text_foreign_keys()
+    if not fks:
+        pytest.skip("no required foreign key to a text key in this app")
+    fld = fks[0]
+    instance = fld.model()
+    setattr(instance, fld.attname, "")
+    exc = ValidationError(
+        {
+            fld.name: [ValidationError("", code="blank")],
+            "other": [ValidationError("", code="invalid")],
+        },
+    )
+    errors, kept = loader._without_zero_length_blanks(instance, exc)  # noqa: SLF001
+    assert kept == [fld.name]
+    assert list(errors) == ["other"]
+    setattr(instance, fld.attname, "x")
+    errors, kept = loader._without_zero_length_blanks(instance, exc)  # noqa: SLF001
+    assert kept == []
+    assert fld.name in errors
 
 
 # ------------------------------------------------------------------ target check

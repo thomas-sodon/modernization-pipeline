@@ -34,6 +34,33 @@ from equivalence.adapter import NotImplementedUnit
 CONFIG = json.loads((Path(__file__).parent / "stub.json").read_text(encoding="utf-8"))
 
 
+class WidgetDiag:
+    """Driver diagnostics of a synthetic database error (psycopg's diag shape)."""
+
+    def __init__(self, names):
+        self.table_name = names.get("table_name")
+        self.column_name = names.get("column_name")
+        self.constraint_name = names.get("constraint_name")
+        self.sqlstate = names.get("sqlstate")
+
+
+class WidgetDbError(Exception):
+    """A synthetic database error whose message quotes a row's values."""
+
+    def __init__(self, message, diag):
+        super().__init__(message)
+        self.diag = WidgetDiag(diag)
+
+
+class WidgetLoadError(Exception):
+    """A synthetic load error carrying design names as attributes."""
+
+    def __init__(self, message, names):
+        super().__init__(message)
+        for key, value in names.items():
+            setattr(self, key, value)
+
+
 class StubAdapter:
     def __init__(self):
         self.dataset = None
@@ -46,6 +73,14 @@ class StubAdapter:
             keys = ("DATABASE_URL", "MP_ONLY_AREAS", "DJANGO_SETTINGS_MODULE")
             Path(out).write_text(json.dumps({k: os.environ.get(k) for k in keys}), encoding="utf-8")
         if CONFIG.get("fail_load"):
+            if "fail_load_diag" in CONFIG or "fail_load_names" in CONFIG:
+                # a load error wrapping a database error, both messages quoting values
+                try:
+                    raise WidgetDbError(CONFIG["fail_load"], CONFIG.get("fail_load_diag") or {})
+                except WidgetDbError as exc:
+                    raise WidgetLoadError(
+                        CONFIG["fail_load"], CONFIG.get("fail_load_names") or {}
+                    ) from exc
             raise RuntimeError(CONFIG["fail_load"])
 
     def run_saved_query(self, unit_id, params):

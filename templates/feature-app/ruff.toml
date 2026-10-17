@@ -1,0 +1,67 @@
+# Lint the skeleton with the rules the target app applies to a copied area (the
+# generated app's [tool.ruff] lint settings), so `ruff check templates/feature-app`
+# in the pipeline repo catches what the app's ruff would. The copy step removes this
+# file (README.md); the area then follows the app's pyproject.toml.
+extend = "../../pyproject.toml"
+
+[lint]
+select = [
+  "A",
+  "ASYNC",
+  "B",
+  "BLE",
+  "C4",
+  "C90",
+  "COM",
+  "DJ",
+  "DTZ",
+  "E",
+  "EM",
+  "ERA",
+  "EXE",
+  "F",
+  "FA",
+  "FBT",
+  "FLY",
+  "G",
+  "I",
+  "ICN",
+  "INP",
+  "INT",
+  "ISC",
+  "N",
+  "PD",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PT",
+  "PTH",
+  "PYI",
+  "Q",
+  "RET",
+  "RSE",
+  "RUF",
+  "S",
+  "SIM",
+  "SLF",
+  "SLOT",
+  "T10",
+  "T20",
+  "TC",
+  "TID",
+  "TRY",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = [
+  "RUF012", # as the app: mutable class attributes are Django's style (Meta, attrs)
+  "S101",   # as the app: assert in tests
+  "SIM102", # as the app: nested ifs are sometimes clearer
+  "N999",   # the directory is named feature-app here; a copy is named after the area
+]
+
+[lint.isort]
+force-single-line = true
+known-first-party = ["__slug__"]

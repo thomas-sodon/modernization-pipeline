@@ -1,0 +1,2 @@
+# Dataset fixtures keep their exact bytes (CRLF record ends); see contracts dataset format.
+* -text

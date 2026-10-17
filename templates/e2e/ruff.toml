@@ -1,0 +1,65 @@
+# Lint the e2e template with the rules the target app applies to tests/e2e/ (the
+# generated app's [tool.ruff] lint settings), so `ruff check templates/e2e`
+# in the pipeline repo catches what the app's ruff would. The copy step (README.md)
+# copies conftest.py only, so the copy follows the app's pyproject.toml.
+extend = "../../pyproject.toml"
+
+[lint]
+select = [
+  "A",
+  "ASYNC",
+  "B",
+  "BLE",
+  "C4",
+  "C90",
+  "COM",
+  "DJ",
+  "DTZ",
+  "E",
+  "EM",
+  "ERA",
+  "EXE",
+  "F",
+  "FA",
+  "FBT",
+  "FLY",
+  "G",
+  "I",
+  "ICN",
+  "INP",
+  "INT",
+  "ISC",
+  "N",
+  "PD",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PT",
+  "PTH",
+  "PYI",
+  "Q",
+  "RET",
+  "RSE",
+  "RUF",
+  "S",
+  "SIM",
+  "SLF",
+  "SLOT",
+  "T10",
+  "T20",
+  "TC",
+  "TID",
+  "TRY",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = [
+  "RUF012", # as the app: mutable class attributes are Django's style (Meta, attrs)
+  "S101",   # as the app: assert in tests
+  "SIM102", # as the app: nested ifs are sometimes clearer
+]
+
+[lint.isort]
+force-single-line = true
