@@ -204,8 +204,27 @@ def _el(parent, tag: str, attrs: dict | None = None, text: str | None = None):
     attrs = attrs or {}
     node = ET.SubElement(parent, tag, {k: str(attrs[k]) for k in sorted(attrs)})
     if text is not None:
-        node.text = text
+        node.text = one_line(text)
     return node
+
+
+LINE_BREAK = re.compile(r"\r\n|\r|\n")
+LINE_PX = 13.0  # line height for multi-line captions at 11px
+
+
+def caption_lines(text: str) -> list[str]:
+    """A caption split at its line breaks (CR LF, CR or LF): Access shows each on its own line."""
+    return LINE_BREAK.split(text) if text else [""]
+
+
+def one_line(text: str) -> str:
+    """Text with every line break or other control character turned into a space.
+
+    A raw CR or LF inside <text> is ignored by SVG renderers and rewritten by git when the target
+    repo normalizes line endings, which would make --check fail on a fresh checkout.
+    """
+    text = LINE_BREAK.sub(" ", text)
+    return "".join(" " if ord(ch) < 32 or ord(ch) == 127 else ch for ch in text)
 
 
 def _text(parent, x, y, text, size=11, fill="#222", anchor="start", weight=None, italic=False):
@@ -223,6 +242,18 @@ def _text(parent, x, y, text, size=11, fill="#222", anchor="start", weight=None,
     if italic:
         attrs["font-style"] = "italic"
     return _el(parent, "text", attrs, text)
+
+
+def _caption_text(parent, x, mid, caption: str, width_px: float, anchor="start"):
+    """A caption: one <text>, with one <tspan> per line when the caption has line breaks."""
+    lines = caption_lines(caption)
+    if len(lines) == 1:
+        return _text(parent, x, mid, fit(lines[0], width_px), anchor=anchor)
+    first = mid - (len(lines) - 1) * LINE_PX / 2
+    node = _text(parent, x, first, None, anchor=anchor)
+    for i, line in enumerate(lines):
+        _el(node, "tspan", {"x": num(x), "y": num(first + i * LINE_PX)}, fit(line, width_px))
+    return node
 
 
 def _rect(parent, x, y, w, h, fill="none", stroke="#555", **extra):
@@ -284,7 +315,7 @@ def _draw_control(g, ctl: dict, x: float, y: float, w: float, h: float, tab_page
     caption = display_caption(ctl.get("caption"))
     mid = y + h / 2 + 4
     if kind == "Label":
-        _text(g, x + 2, mid, fit(caption, w), fill="#222")
+        _caption_text(g, x + 2, mid, caption, w)
     elif kind in ("TextBox", "Attachment"):
         _rect(g, x, y, w, h, fill="#fff", stroke="#888")
         label = name if kind == "TextBox" else f"attachment {name}"
@@ -304,7 +335,7 @@ def _draw_control(g, ctl: dict, x: float, y: float, w: float, h: float, tab_page
         _text(g, x + 3, y + min(h, 20.0) / 2 + 4, fit(name, w - arrow - 4), fill="#999")
     elif kind in ("CommandButton", "ToggleButton"):
         _rect(g, x, y, w, h, fill="#eef1f6", stroke="#667", rx="4", ry="4")
-        _text(g, x + w / 2, mid, fit(caption or name, w - 4), anchor="middle")
+        _caption_text(g, x + w / 2, mid, caption or name, w - 4, anchor="middle")
     elif kind == "CheckBox":
         side = min(w, h, 12.0)
         _rect(g, x, y + (h - side) / 2, side, side, fill="#fff", stroke="#555")
@@ -442,6 +473,10 @@ def render_form(form: dict) -> tuple[str, int]:
 
     _text(svg, MARGIN_PX, total_h - 9, CAPTION, size=11, fill="#555", italic=True)
     ET.indent(svg, space=" ")
+    for node in svg.iter("text"):
+        for span in node:  # keep multi-line text free of indentation whitespace
+            node.text = None
+            span.tail = None
     body = ET.tostring(svg, encoding="unicode")
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + body + "\n", count
 

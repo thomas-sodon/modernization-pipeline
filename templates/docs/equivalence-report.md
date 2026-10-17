@@ -22,7 +22,7 @@ $results_by_kind
 
 $coverage
 
-Access report layouts and report-level totals are proven by the S5 view tests (test_views.py), rule tests and end-to-end tests, not by goldens (the Access reference adapter's render_document raises NotImplementedError).
+Access report layouts and report-level totals are checked by the S5 view tests (test_views.py), rule tests and end-to-end tests (not compared with Access), not by goldens (the Access reference adapter's render_document raises NotImplementedError).
 
 ## Rule tests and end-to-end tests
 

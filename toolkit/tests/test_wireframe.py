@@ -124,6 +124,32 @@ def test_scrubbed_token_kept_as_is():
     assert "Ask <EMAIL-1>" in [t.text for t in root.iter(f"{SVG_NS}text")]
 
 
+@pytest.mark.parametrize("brk", ["\r\n", "\r", "\n"])
+def test_caption_line_breaks_become_tspans(brk):
+    form = json.loads((MODEL / "objects.json").read_text(encoding="utf-8"))["forms"][0]
+    label = next(c for c in form["controls"] if c["type"] == "Label")
+    label["caption"] = f"First line{brk}Second line{brk}Third"
+    button = next(c for c in form["controls"] if c["type"] == "CommandButton")
+    button["caption"] = f"Save{brk}close"
+    form["controls"].append({**label, "name": f"odd{brk}name", "type": "TextBox", "caption": None})
+    text, _count = wireframe.render_form(form)
+    assert "\r" not in text
+    root = ET.fromstring(text.encode("utf-8"))
+    for node in root.iter():
+        if node.tag in (f"{SVG_NS}text", f"{SVG_NS}tspan"):
+            assert "\n" not in (node.text or "") and "\r" not in (node.text or "")
+    multi = {
+        tuple(s.text for s in t.iter(f"{SVG_NS}tspan"))
+        for t in root.iter(f"{SVG_NS}text")
+        if list(t.iter(f"{SVG_NS}tspan"))
+    }
+    assert ("First line", "Second line", "Third") in multi
+    assert ("Save", "close") in multi
+    assert "odd name" in [t.text for t in root.iter(f"{SVG_NS}text")]
+    # the output survives git's eol=lf normalisation unchanged
+    assert text.replace("\r\n", "\n") == text
+
+
 def test_canary_never_appears(out):
     for name, data in _snapshot(out).items():
         assert CANARY.encode() not in data, name

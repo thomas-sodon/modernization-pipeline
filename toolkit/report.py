@@ -46,9 +46,9 @@ SECTIONS = (
 )
 ACCESS_KINDS = ("accdt", "accdb", "mdb", "vcs-export")
 REPORT_COVERAGE_SENTENCE = (
-    "Access report layouts and report-level totals are proven by the S5 view tests "
-    "(test_views.py), rule tests and end-to-end tests, not by goldens (the Access reference "
-    "adapter's render_document raises NotImplementedError)."
+    "Access report layouts and report-level totals are checked by the S5 view tests "
+    "(test_views.py), rule tests and end-to-end tests (not compared with Access), not by "
+    "goldens (the Access reference adapter's render_document raises NotImplementedError)."
 )
 DB_TITLES = {"postgresql": "PostgreSQL", "mssql": "SQL Server"}
 KINDS = ("saved_query", "formula_output", "document")
@@ -772,7 +772,7 @@ def coverage(inp: Inputs, a: Analysis) -> str:
     }
     out.append(
         table(
-            ["Test kind", "Kept rules", "With a test", "Proven by"],
+            ["Test kind", "Kept rules", "With a test", "Checked by"],
             [
                 [k, a.rule_cover[k][1], a.rule_cover[k][0], how[k]]
                 for k in ("rule", "equivalence", "e2e")

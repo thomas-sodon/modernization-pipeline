@@ -2,40 +2,47 @@
 Skeleton for {{p.target_repo}}/NOTICE.md in a demo target repo (commercial.tier "demo",
 S6.handover). Two parts:
 
-1. The shared header, everything above the first engagement marker. While the root NOTICE
-   header is still the setup stub of pipeline docs/runbook.md 0.5 ("# Notices" and one
-   line), the run replaces the stub with the shared header below. Once a header like this
-   one is there, later runs keep it byte-identical.
+1. The shared header, everything above the first engagement marker. No engagement run
+   writes it: it stays byte-identical to the target repo's main branch
+   (`git show origin/main:NOTICE.md`), including the setup stub of pipeline
+   docs/runbook.md 0.5 ("# Notices" and one line). Claims about "every app" do not belong
+   in it; each engagement credits its own app's material inside its own section.
 2. One section per engagement, between the HTML-comment marker lines "engagement:<id>" and
    "/engagement:<id>". A run rewrites only its own section and keeps every other section
-   byte-identical.
+   byte-identical. Check before reporting done: with the run's own section emptied, the
+   file equals origin/main's with that section emptied.
+
+Below is the stub header as setup writes it (do not change it) and the skeleton of one
+engagement section. The cross-app components (our MIT code, cookiecutter-django, Jackcess
+for Access sources, htmx, the ODBC driver) are listed inside the section, for this
+engagement's app only.
 
 When target.root is '.', there is no root NOTICE: the app NOTICE.md is the only one.
 The demo root LICENSE is the file LICENSE beside this skeleton, with $year (the S6 year)
-and $author_name (pipeline.json stack.app_template.answers.author_name) filled. Clients
+and $author_name (pipeline.json stack.app_template.answers.author_name) filled. The first
+demo run that finds no root LICENSE creates it; later runs keep it byte-identical. Clients
 get no LICENSE: their app README carries the Ownership section instead.
-Replace every fill hint; a filled file keeps none. Delete this comment.
+Replace every fill hint; a filled section keeps none. Delete this comment.
 -->
 
 # Notices
 
-This repository holds demo engagements of the modernization pipeline: each folder rebuilds one legacy Office application as a Django app. This file credits third-party material; each app folder's `NOTICE.md` has the full detail.
+Third-party material and credits, one section per engagement, written at its S6 stage.
 
-## Our code
+<!-- engagement:$engagement_id -->
+## $project_name ([$root/]($root/))
 
-The code and documents written for these demos are under the MIT licence in [LICENSE](LICENSE). That licence covers our own work only. Third-party material keeps its own licence, listed below and in each app's `NOTICE.md`.
+- **Our code.** The code and documents written for this demo in `$root/` are under the MIT licence in [LICENSE](LICENSE). That licence covers our own work only; the third-party material below keeps its own licence.
+- **Source credit.** <!-- fill: Access demo: the original's names and structure are Microsoft's, published without a licence, and used as names and structure only (no data, VBA, query or macro text; the repo does not contain the source file). Excel demo: the original project's name, author, the copyright line exactly as its LICENSE states and the full MIT permission text. -->
+- **Trademarks.** <!-- fill: Access demo: Microsoft, Access and Northwind are trademarks of the Microsoft group of companies; not affiliated with or endorsed by Microsoft. Excel demo: Microsoft and Excel likewise. -->
 
-## Third-party material in every app
-
-| Component | Licence | How it is used |
+| Component | Licence | How the $project_name app uses it |
 |---|---|---|
-| cookiecutter-django | BSD-3-Clause | <!-- fill: tag and commit from pipeline.json stack.app_template; the generated project layout and settings each app starts from; the full licence text is in each app's NOTICE.md --> |
-| Jackcess | Apache-2.0 | <!-- fill: version from core/THIRD_PARTY.md; behaviour reference for core/vbacompat.py (no Jackcess code included) --> |
+| cookiecutter-django | BSD-3-Clause | <!-- fill: tag and commit from pipeline.json stack.app_template; the project layout, settings and users app the app starts from; full licence text in $root/NOTICE.md --> |
+| Jackcess | Apache-2.0 | <!-- fill: only when $root/app/<slug>/core/THIRD_PARTY.md names it: version from it; behaviour reference for core/vbacompat.py, no Jackcess code included; otherwise delete this row --> |
 | htmx 2 | 0BSD | <!-- fill: version from the file django-htmx ships; served by django-htmx, not copied into the repo --> |
-| Microsoft ODBC Driver 18 for SQL Server | Microsoft proprietary licence | <!-- fill: bundled by mssql-python through mssql-python-odbc; installed from PyPI at deploy time, not in the repo --> |
+| Microsoft ODBC Driver 18 for SQL Server | Microsoft proprietary licence | <!-- fill: bundled by mssql-python through mssql-python-odbc (driver version from its installed files); installed from PyPI at deploy time, used only on SQL Server, not in the repo --> |
+| <!-- fill: one row per vendored asset under $root/app/<slug>/<area>/static/<area>/vendor/: name --> | <!-- fill: licence --> | <!-- fill: version, where, and the area THIRD_PARTY.md that records it --> |
 
-Each app's `NOTICE.md` lists its runtime Python packages with their versions and licences, the third-party files it bundles, and the full text of every `THIRD_PARTY.md` in its code.
-
-<!-- fill: then the engagement sections, each between its own marker lines. Section text per engagement: -->
-<!-- fill: Access demo: the original's names and structure are Microsoft's, published without a licence, and used as names and structure only (no data, VBA or query text); Microsoft, Access and Northwind are Microsoft trademarks; link <root>/NOTICE.md. -->
-<!-- fill: Excel demo: the original project's name, author, copyright line exactly as its LICENSE states and the full MIT permission text; every vendored asset (name, version, licence, where: <root>/app/<slug>/<area>/static/<area>/vendor/); link <root>/NOTICE.md. -->
+Everything else, the <!-- fill: count from uv export --> runtime Python packages with their versions and licences, the full text of each `THIRD_PARTY.md` and the cookiecutter-django licence, is in [$root/NOTICE.md]($root/NOTICE.md).
+<!-- /engagement:$engagement_id -->

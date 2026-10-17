@@ -8,6 +8,7 @@ schema mp-data validates.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,6 +17,7 @@ import jsonschema
 import pytest
 
 from toolkit import cli
+from toolkit import report as rp
 
 FIX = Path(__file__).parent / "fixtures" / "report"
 SCHEMA = json.loads(
@@ -299,11 +301,36 @@ def test_report_claims_no_more_than_the_comparison_covers(fx, capfd):
     )
 
 
+def test_report_and_template_never_say_proven(fx, capfd):
+    """Nothing compares Access report layouts, so nothing in the report may say 'proven'."""
+    template = rp.TEMPLATE.read_text(encoding="utf-8")
+    for source in (template, rp.REPORT_COVERAGE_SENTENCE):
+        assert (
+            re.search(r"\bprov(e|es|en|ing)\b|\bproof\b", source, re.IGNORECASE) is None
+        )
+    assert summarize(capfd, fx)[0] == 0
+    assert report(capfd, fx)[0] == 0
+    text = fx.report.read_text(encoding="utf-8")
+    assert re.search(r"\bprov(e|es|en|ing)\b|\bproof\b", text, re.IGNORECASE) is None
+    assert "same results" not in text.lower()
+    # the Access report-coverage sentence says checked, and that Access is not compared
+    assert (
+        "Access report layouts and report-level totals are checked by the S5 view tests "
+        "(test_views.py), rule tests and end-to-end tests (not compared with Access)"
+        in text
+    )
+    coverage = text.split("## Coverage", 1)[1].split("## Rule tests", 1)[0]
+    assert "| Test kind | Kept rules | With a test | Checked by |" in coverage
+    assert "Proven by" not in coverage
+
+
 def test_units_needing_access_confirmation_are_disclosed(fx, capfd):
     assert summarize(capfd, fx)[0] == 0
     assert report(capfd, fx)[0] == 0
     text = fx.report.read_text(encoding="utf-8")
-    assert "2 of the 6 kept units have reference outputs that were not confirmed" in text
+    assert (
+        "2 of the 6 kept units have reference outputs that were not confirmed" in text
+    )
     assert "- **Not confirmed on Microsoft Access:** 2 of the 6 kept units" in text
     assert "this engagement had no Windows + Access machine" in text
     known = text.split("## Known differences", 1)[1].split("## How to re-run", 1)[0]
