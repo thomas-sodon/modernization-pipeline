@@ -13,4 +13,4 @@
 | 2026-10-17 | S5 | 1 | wf_5432d2bd-144 | bootstrap | 7 | 9/18 | 0 | 1060 | 3898129 | 125752011 | 65626 | 45.96 | pending | pending | pending | no | S5.e2e blocked; S5.review skipped |
 | 2026-10-17 | S5 | 2 | wf_cae3f0cb-626 | bootstrap | 16 | 9/18 | 1 | 1234 | 3326918 | 68078752 | 92694 | 32.11 | pending | pending | pending | no | 8 blocking finding(s) |
 | 2026-10-17 | S5 | 3 | wf_8a851d17-833 | bootstrap | 5 | 8/17 | 0 | 258 | 1011146 | 8428337 | 22178 | 7.19 | pending | pending | pending | no | S5.feature.orders blocked; S5.e2e skipped; S5.review skipped |
-| 2026-10-17 | S5 | 4 | pending | bootstrap | 5 | 5/14 | 0 | see runbook | see runbook | see runbook | see runbook | see runbook | pending | pending | pending | yes | none |
+| 2026-10-17 | S5 | 4 | wf_76c546bf-98d | bootstrap | 5 | 5/14 | 0 | 460 | 1126744 | 32094267 | 28743 | 12.63 | pending | pending | pending | yes | none |
