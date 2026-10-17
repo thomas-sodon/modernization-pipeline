@@ -1,0 +1,7 @@
+{
+  "counts": {"forms": 3, "modules": 2, "queries": 8, "reports": 1, "tables": 2},
+  "engagement": "fixture-eng",
+  "format_version": 1,
+  "objects": [],
+  "rule_bearing_kinds": ["procedure", "data_macro", "macro", "query", "form", "report"]
+}

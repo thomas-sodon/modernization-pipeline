@@ -1,0 +1,11 @@
+{
+  "format_version": 1,
+  "objects": [],
+  "workflows": [
+    {
+      "id": "widget_upkeep",
+      "title": "Widget upkeep",
+      "forms": ["frmWidget", "sfrmWidgetParts"]
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "format_version": 1,
+  "source_kind": "accdt",
+  "forms": [
+    {
+      "caption": "Widget card",
+      "controls": [
+        {"caption": "Widgets", "control_source": null, "events": [], "height": 450, "left": 120, "name": "lblTitle", "page": null, "parent": null, "row_source": null, "section": "FormHeader", "source_object": null, "top": 60, "type": "Label", "visible": true, "width": 3000},
+        {"caption": "&Save widget", "control_source": null, "events": ["Click"], "height": 0, "left": 4200, "name": "cmdSave", "page": null, "parent": null, "row_source": null, "section": "FormHeader", "source_object": null, "top": 60, "type": "CommandButton", "visible": true, "width": 1500},
+        {"caption": "Widget code", "control_source": null, "events": [], "height": 300, "left": 120, "name": "lblCode", "page": null, "parent": "txtCode", "row_source": null, "section": "Detail", "source_object": null, "top": 120, "type": "Label", "visible": true, "width": 1500},
+        {"caption": null, "control_source": "=CANARY-1", "default_value": "CANARY-1", "events": [], "height": 300, "left": 1740, "name": "txtCode", "page": null, "parent": null, "row_source": null, "section": "Detail", "source_object": null, "top": 120, "type": "TextBox", "visible": true, "width": 2000},
+        {"caption": "Colour", "control_source": null, "events": [], "height": 300, "left": 120, "name": "lblColour", "page": null, "parent": "cboColour", "row_source": null, "section": "Detail", "source_object": null, "top": 540, "type": "Label", "visible": true, "width": 1500},
+        {"caption": null, "control_source": "ColourCode", "events": ["AfterUpdate"], "height": 300, "left": 1740, "name": "cboColour", "page": null, "parent": null, "row_source": "SELECT Code FROM Colours WHERE Code = 'CANARY-1'", "section": "Detail", "source_object": null, "top": 540, "type": "ComboBox", "visible": true, "width": 2000},
+        {"caption": null, "control_source": null, "events": [], "height": 2400, "left": 120, "name": "tabMain", "page": null, "parent": null, "row_source": null, "section": "Detail", "source_object": null, "top": 1020, "type": "Tab", "visible": true, "width": 6000},
+        {"caption": null, "control_source": null, "events": [], "height": 1800, "left": 240, "name": "ctlParts", "page": "pgParts", "parent": "pgParts", "row_source": null, "section": "Detail", "source_object": "sfrmWidgetParts", "top": 1440, "type": "Subform", "visible": true, "width": 5700},
+        {"caption": "Ask <EMAIL-1>", "control_source": null, "events": [], "height": 300, "left": 240, "name": "lblHelp", "page": "pgNotes", "parent": "pgNotes", "row_source": null, "section": "Detail", "source_object": null, "top": 1440, "type": "Label", "visible": true, "width": 3000},
+        {"caption": "Ready", "control_source": null, "events": [], "height": 300, "left": 120, "name": "lblStatus", "page": null, "parent": null, "row_source": null, "section": "FormFooter", "source_object": null, "top": 60, "type": "Label", "visible": true, "width": 1500}
+      ],
+      "default_view": "single",
+      "events": ["Load"],
+      "has_code_behind": true,
+      "name": "frmWidget",
+      "record_source": "SELECT * FROM Widgets WHERE Code <> 'CANARY-1'",
+      "sections": [
+        {"height": 600, "kind": "form_header", "name": "FormHeader"},
+        {"height": 3600, "kind": "detail", "name": "Detail"},
+        {"height": 420, "kind": "form_footer", "name": "FormFooter"}
+      ],
+      "tab_pages": [
+        {"caption": "&Parts", "index": 0, "name": "pgParts", "tab_control": "tabMain"},
+        {"caption": "Notes && help", "index": 1, "name": "pgNotes", "tab_control": "tabMain"}
+      ],
+      "width": 7200
+    },
+    {
+      "caption": null,
+      "controls": [
+        {"caption": "Parts", "control_source": null, "events": [], "height": 300, "left": 60, "name": "lblParts", "page": null, "parent": null, "row_source": null, "section": "FormHeader", "source_object": null, "top": 30, "type": "Label", "visible": true, "width": 1200},
+        {"caption": null, "control_source": "PartName", "default_value": "\"CANARY-1\"", "events": [], "height": 300, "left": 60, "name": "txtPartName", "page": null, "parent": null, "row_source": null, "section": "Detail", "source_object": null, "top": 30, "type": "TextBox", "visible": true, "width": 2400},
+        {"caption": null, "control_source": "Supplier", "events": [], "height": 300, "left": 2520, "name": "cboSupplier", "page": null, "parent": null, "row_source": "CANARY-1;Other", "section": "Detail", "source_object": null, "top": 30, "type": "ComboBox", "visible": true, "width": 1800},
+        {"caption": null, "control_source": null, "events": [], "height": 600, "left": 4380, "name": "imgPart", "page": null, "parent": null, "row_source": null, "section": "Detail", "source_object": null, "top": 30, "type": "Image", "visible": true, "width": 600},
+        {"caption": "Total", "control_source": null, "events": [], "height": 300, "left": 60, "name": "lblTotal", "page": null, "parent": null, "row_source": null, "section": "FormFooter", "source_object": null, "top": 30, "type": "Label", "visible": true, "width": 1200}
+      ],
+      "default_view": "continuous",
+      "events": [],
+      "has_code_behind": false,
+      "name": "sfrmWidgetParts",
+      "record_source": "WidgetParts",
+      "sections": [
+        {"height": 360, "kind": "form_header", "name": "FormHeader"},
+        {"height": 720, "kind": "detail", "name": "Detail"},
+        {"height": 360, "kind": "form_footer", "name": "FormFooter"}
+      ],
+      "tab_pages": [],
+      "width": 5100
+    }
+  ],
+  "queries": [],
+  "reports": []
+}

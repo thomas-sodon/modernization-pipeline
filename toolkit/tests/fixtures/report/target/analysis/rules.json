@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "kind": "merged",
+  "engagement": "fixture-eng",
+  "spec_version": "1.0",
+  "areas": [
+    {"id": "orders", "title": "Orders", "status": "kept", "queries": ["qA", "qB", "qC"], "forms": ["frmOrder"], "reports": ["rptInvoice"], "procedures": [], "tables": ["Orders"]},
+    {"id": "stock", "title": "Stock", "status": "kept", "queries": ["qD", "qE", "qF"], "forms": [], "reports": [], "procedures": [], "tables": ["Products"]},
+    {"id": "admin_tools", "title": "Admin tools", "status": "dropped", "queries": ["qAudit"], "forms": [], "reports": [], "procedures": [], "tables": []}
+  ],
+  "rules": [
+    {"id": "R-orders-001", "area": "orders", "statement": "An order needs a customer.", "trigger": "form:frmOrder.BeforeUpdate", "sources": [{"type": "form", "ref": "frmOrder"}], "tables": ["Orders"], "confidence": "high", "test_kind": "rule", "questions": []},
+    {"id": "R-orders-002", "area": "orders", "statement": "The order total sums its lines.", "trigger": "query:qB", "sources": [{"type": "query", "ref": "qB"}], "tables": ["Orders"], "confidence": "high", "test_kind": "equivalence", "questions": []},
+    {"id": "R-orders-003", "area": "orders", "statement": "A shipped order prints its invoice.", "trigger": "form:frmOrder.AfterUpdate", "sources": [{"type": "report", "ref": "rptInvoice"}], "tables": ["Orders"], "confidence": "medium", "test_kind": "e2e", "questions": []},
+    {"id": "R-stock-001", "area": "stock", "statement": "Stock on hand never goes below zero.", "trigger": "query:qD", "sources": [{"type": "query", "ref": "qD"}], "tables": ["Products"], "confidence": "high", "test_kind": "rule", "questions": []}
+  ],
+  "objects": [
+    {"type": "table", "name": "Orders", "decision": "keep", "area": "orders", "target_component": "legacy.models", "reason": null},
+    {"type": "table", "name": "Products", "decision": "keep", "area": "stock", "target_component": "legacy.models", "reason": null},
+    {"type": "form", "name": "frmOrder", "decision": "keep", "area": "orders", "target_component": "orders.views", "reason": null},
+    {"type": "report", "name": "rptInvoice", "decision": "keep", "area": "orders", "target_component": "orders.reports", "reason": null},
+    {"type": "query", "name": "qA", "decision": "keep", "area": "orders", "target_component": "orders.saved_queries", "reason": "a plain list"},
+    {"type": "query", "name": "qB", "decision": "keep", "area": "orders", "target_component": "orders.saved_queries", "reason": null},
+    {"type": "query", "name": "qC", "decision": "keep", "area": "orders", "target_component": "orders.saved_queries", "reason": "a plain list"},
+    {"type": "query", "name": "qD", "decision": "keep", "area": "stock", "target_component": "stock.saved_queries", "reason": null},
+    {"type": "query", "name": "qE", "decision": "keep", "area": "stock", "target_component": "stock.saved_queries", "reason": "a plain list"},
+    {"type": "query", "name": "qF", "decision": "keep", "area": "stock", "target_component": "stock.saved_queries", "reason": "a plain list"},
+    {"type": "query", "name": "qOld", "decision": "drop", "area": "orders", "target_component": null, "reason": "duplicate of qA"},
+    {"type": "query", "name": "qAudit", "decision": "out_of_scope", "area": "admin_tools", "target_component": null, "reason": "admin only"}
+  ],
+  "lookups": [],
+  "relations": [],
+  "workflows": [{"id": "order_flow", "title": "Order to invoice", "forms": ["frmOrder"], "reports": ["rptInvoice"], "rules": ["R-orders-003"], "steps": ["enter order", "print invoice"]}],
+  "services": [],
+  "open_questions": [],
+  "signed": null
+}

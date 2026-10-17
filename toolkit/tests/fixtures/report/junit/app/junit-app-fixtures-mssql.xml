@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites name="pytest tests">
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="4" time="30.000" timestamp="2026-03-02T08:00:00.000000+00:00" hostname="fixture">
+    <testcase classname="shop.orders.tests.test_rules" name="test_order_needs_a_customer" time="0.100" />
+    <testcase classname="shop.orders.tests.test_rules" name="test_helper_without_rule_id" time="0.100" />
+    <testcase classname="shop.stock.tests.test_rules.TestStock" name="test_stock_never_below_zero" time="0.100" />
+    <testcase classname="shop.orders.tests.test_views" name="test_order_list_needs_sign_in" time="0.100" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,36 @@
+# Skeleton for {{p.target}}/docs/deploy/fly.toml (S6.handover, hosting.provider fly).
+# It must stay valid TOML. Replace every "fill:" comment with the engagement's value or
+# delete it; a filled copy keeps no "fill:" line. Secrets go in with `fly secrets set`, never here.
+
+app = "app-name" # fill: the Fly app name agreed with the client
+primary_region = "ams" # fill: the region closest to the users
+
+[build]
+dockerfile = "Dockerfile" # fill: path of the app's Dockerfile, relative to the app folder
+
+[deploy]
+release_command = "python manage.py migrate --noinput" # fill: append the @reboot JOBS commands
+
+[env]
+DJANGO_SETTINGS_MODULE = "config.settings.production"
+PORT = "8000"
+# fill: non-secret settings: DJANGO_ALLOWED_HOSTS, DJANGO_CSRF_TRUSTED_ORIGINS, CONN_MAX_AGE
+
+[http_service]
+internal_port = 8000
+force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 1
+
+[[http_service.checks]]
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/health/"
+
+[[vm]]
+memory = "1gb" # fill: size agreed with the client
+cpu_kind = "shared"
+cpus = 1
