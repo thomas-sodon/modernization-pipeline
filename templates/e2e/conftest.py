@@ -125,6 +125,22 @@ def pause() -> Callable[[Page], None]:
 
 
 @pytest.fixture
+def htmx_ready() -> Callable[[Page, str], None]:
+    """htmx_ready(page, selector): wait until htmx has processed the element.
+
+    Right after a page load an event it listens for (hx-trigger="change" on a filter
+    form) is lost until then, so interact only after this returns."""
+
+    def _ready(page: Page, selector: str) -> None:
+        page.wait_for_function(
+            "s => !!document.querySelector(s)?.['htmx-internal-data']?.initHash",
+            arg=selector,
+        )
+
+    return _ready
+
+
+@pytest.fixture
 def record_context(new_context) -> Callable[[str], contextlib.AbstractContextManager]:
     """record_context("walkthrough"): a page in its own browser context.
 
