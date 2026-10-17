@@ -17,6 +17,7 @@ What `conftest.py` gives every test:
 | `sign_in(page, role, next_url=None)` | Signs in on the allauth page as the role's demo user. With `next_url`, opens that URL signed out first, so the user lands where the app sends them. |
 | `shot(page, name)` | Saves `<name>.png` of the viewport (not the full page) in `$E2E_SCREENSHOT_DIR`, only when that variable is set, and fails above 400 KB. |
 | `pause(page)` | Waits 1.2 s, so a viewer of the walkthrough video can follow. |
+| `htmx_ready(page, selector)` | Waits until htmx has processed the element (its `htmx-internal-data.initHash` is set). Call it before you change a field of a form with `hx-trigger="change"` right after a page load; until htmx has processed the form the change event is lost and the test fails at random. |
 | `record_context(name)` | A context manager giving a page in its own browser context. With `$E2E_VIDEO_DIR` set it records at 1280x800; on exit it closes the context, saves `<name>.webm` there with `video.save_as`, deletes Playwright's randomly named copy with `video.delete()` and checks the file is not empty. |
 | `walkthrough` marker | Registered, so `-m walkthrough` selects the recorded walkthrough. |
 
