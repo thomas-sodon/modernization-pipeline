@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  __area_title__: {{ object }}
+{% endblock title %}
+{% block css %}
+  {# Local files only, so the PDF renders offline; print.css sets A4. #}
+  <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+  <link href="{% static 'css/print.css' %}" rel="stylesheet" media="print" />
+{% endblock css %}
+{% block javascript %}
+{% endblock javascript %}
+{% block body %}
+  <main class="container">
+    <h1 class="h3">{{ object }}</h1>
+  </main>
+{% endblock body %}
