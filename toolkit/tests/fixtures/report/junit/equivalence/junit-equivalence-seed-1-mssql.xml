@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites name="pytest tests">
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="5" time="1.100" timestamp="2026-03-01T10:15:00.000000+00:00" hostname="fixture">
+    <testcase classname="tests.test_units" name="test_unit[orders::qA::seed-1::mssql]" time="0.100" />
+    <testcase classname="tests.test_units" name="test_unit[orders::qB::seed-1::mssql]" time="0.100" />
+    <testcase classname="tests.test_units" name="test_unit[orders::qC::seed-1::mssql]" time="0.100" />
+    <testcase classname="tests.test_units" name="test_unit[stock::qD::seed-1::mssql]" time="0.100" />
+    <testcase classname="tests.test_units" name="test_unit[stock::qF::seed-1::mssql]" time="0.100" />
+  </testsuite>
+</testsuites>

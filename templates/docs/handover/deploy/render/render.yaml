@@ -1,0 +1,44 @@
+# Skeleton for {{p.target}}/docs/deploy/render.yaml (S6.handover, hosting.provider render):
+# a Render Blueprint. Replace every "fill:" comment with the engagement's value or delete it;
+# a filled copy keeps no "fill:" line. Secrets are sync: false (entered in the dashboard),
+# never written here.
+services:
+  - type: web
+    name: app-web # fill: <slug>-web
+    runtime: python
+    rootDir: app # fill: <target.root>/app
+    plan: starter # fill: the plan agreed with the client
+    buildCommand: pip install uv && uv sync --locked --no-dev && uv run --no-sync python manage.py collectstatic --noinput
+    preDeployCommand: uv run --no-sync python manage.py migrate --noinput # fill: append the @reboot JOBS commands
+    startCommand: uv run --no-sync gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3
+    healthCheckPath: /health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: app-db # fill: the database name below, or sync: false for the client's own database
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_ADMIN_URL
+        sync: false
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false # fill: the onrender.com host and the custom domain
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      # fill: one entry per remaining setting of the runbook's Configuration and secrets section
+  # fill: one cron service per scheduled JOBS entry:
+  # - type: cron
+  #   name: <slug>-<command>
+  #   runtime: python
+  #   rootDir: <target.root>/app
+  #   schedule: "<cron from jobs.py>"
+  #   buildCommand: pip install uv && uv sync --locked --no-dev
+  #   startCommand: uv run --no-sync python manage.py <command>
+databases:
+  - name: app-db # fill: <slug>-db
+    databaseName: app # fill: <db_name>
+    plan: basic-256mb # fill: the plan agreed with the client

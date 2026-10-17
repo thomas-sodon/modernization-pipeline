@@ -1,0 +1,84 @@
+{
+  "engagement": "fixture-eng",
+  "format_version": 1,
+  "units": {
+    "qA": {
+      "area": "orders",
+      "canonical_version": 1,
+      "columns": [{"name": "OrderID", "type": "longinteger"}],
+      "datasets": {
+        "engagement": {"digest": {"alg": "hmac-sha256", "value": "aa00000000000000000000000000000000000000000000000000000000000001"}, "reason": null, "rows": 3, "status": "ok"},
+        "seed-1": {"digest": {"alg": "sha256", "value": "bb00000000000000000000000000000000000000000000000000000000000001"}, "expected": "synthetic/seed-1/expected/qA.csv", "reason": null, "rows": 2, "status": "ok"},
+        "seed-2": {"digest": {"alg": "sha256", "value": "cc00000000000000000000000000000000000000000000000000000000000001"}, "expected": "synthetic/seed-2/expected/qA.csv", "reason": null, "rows": 2, "status": "ok"}
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qB": {
+      "area": "orders",
+      "canonical_version": 1,
+      "columns": [{"name": "OrderID", "type": "longinteger"}, {"name": "Total", "type": "currency"}],
+      "datasets": {
+        "engagement": {"digest": {"alg": "hmac-sha256", "value": "aa00000000000000000000000000000000000000000000000000000000000002"}, "reason": null, "rows": 3, "status": "ok"},
+        "seed-1": {"digest": {"alg": "sha256", "value": "bb00000000000000000000000000000000000000000000000000000000000002"}, "expected": "synthetic/seed-1/expected/qB.csv", "reason": null, "rows": 2, "status": "ok"},
+        "seed-2": {"digest": {"alg": "sha256", "value": "cc00000000000000000000000000000000000000000000000000000000000002"}, "expected": "synthetic/seed-2/expected/qB.csv", "reason": null, "rows": 2, "status": "ok"}
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": true,
+      "order_by": null
+    },
+    "qC": {
+      "area": "orders",
+      "canonical_version": 1,
+      "columns": [{"name": "CustomerID", "type": "longinteger"}],
+      "datasets": {
+        "engagement": {"digest": {"alg": "hmac-sha256", "value": "aa00000000000000000000000000000000000000000000000000000000000003"}, "reason": null, "rows": 4, "status": "ok"},
+        "seed-1": {"digest": {"alg": "sha256", "value": "bb00000000000000000000000000000000000000000000000000000000000003"}, "expected": "synthetic/seed-1/expected/qC.csv", "reason": null, "rows": 1, "status": "ok"},
+        "seed-2": {"digest": {"alg": "sha256", "value": "cc00000000000000000000000000000000000000000000000000000000000003"}, "expected": "synthetic/seed-2/expected/qC.csv", "reason": null, "rows": 1, "status": "ok"}
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qD": {
+      "area": "stock",
+      "canonical_version": 1,
+      "columns": [{"name": "ProductID", "type": "longinteger"}],
+      "datasets": {
+        "engagement": {"digest": {"alg": "hmac-sha256", "value": "aa00000000000000000000000000000000000000000000000000000000000004"}, "reason": null, "rows": 5, "status": "ok"},
+        "seed-1": {"digest": {"alg": "sha256", "value": "bb00000000000000000000000000000000000000000000000000000000000004"}, "expected": "synthetic/seed-1/expected/qD.csv", "reason": null, "rows": 3, "status": "ok"},
+        "seed-2": {"digest": {"alg": "sha256", "value": "cc00000000000000000000000000000000000000000000000000000000000004"}, "expected": "synthetic/seed-2/expected/qD.csv", "reason": null, "rows": 3, "status": "ok"}
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    },
+    "qE": {
+      "area": "stock",
+      "canonical_version": 1,
+      "columns": [{"name": "ProductID", "type": "longinteger"}],
+      "datasets": {
+        "engagement": {"digest": {"alg": "hmac-sha256", "value": "aa00000000000000000000000000000000000000000000000000000000000005"}, "reason": null, "rows": 2, "status": "ok"},
+        "seed-1": {"digest": {"alg": "sha256", "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "expected": "synthetic/seed-1/expected/qE.csv", "reason": "empty", "rows": 0, "status": "empty"},
+        "seed-2": {"digest": {"alg": "sha256", "value": "cc00000000000000000000000000000000000000000000000000000000000005"}, "expected": "synthetic/seed-2/expected/qE.csv", "reason": null, "rows": 1, "status": "ok"}
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": true,
+      "order_by": null
+    },
+    "qF": {
+      "area": "stock",
+      "canonical_version": 1,
+      "columns": [{"name": "ProductID", "type": "longinteger"}],
+      "datasets": {
+        "engagement": {"digest": {"alg": "hmac-sha256", "value": "aa00000000000000000000000000000000000000000000000000000000000006"}, "reason": null, "rows": 2, "status": "ok"},
+        "seed-1": {"digest": {"alg": "sha256", "value": "bb00000000000000000000000000000000000000000000000000000000000006"}, "expected": "synthetic/seed-1/expected/qF.csv", "reason": null, "rows": 2, "status": "ok"},
+        "seed-2": {"digest": null, "reason": "crosstab", "rows": null, "status": "unsupported"}
+      },
+      "kind": "saved_query",
+      "needs_access_confirmation": false,
+      "order_by": null
+    }
+  }
+}

@@ -797,10 +797,13 @@ function preamble() {
     `Data zones: you may read the design zone (${list(ZONES.design)}). Never open, list, cat, query or copy anything in the data zone (${list(ZONES.data)}); only ${WRAPPER} commands touch it.`,
     `Client answers: ${PATHS.records}/answers.md, if present; it overrides assumptions recorded in notes.${PREV ? ` Previous stage handoff: ${PATHS.records}/runs/${PREV}.json, if present (read its notes, requests and manual_steps).` : ''}`,
     RUN_RULE,
+    LONG_RULE,
     CLIENT_RULE,
     `Rules for every task:\n${numbered(CONSTRAINTS)}`,
   ].filter(Boolean).join('\n')
 }
+// A checkpoint's --history guard ran past the Bash tool's 120 s default and was reported as not run.
+const LONG_RULE = 'Long commands (mp-data guard --history, equivalence, golden record, test suites) can take many minutes: run each with the Bash tool timeout set to 600000 ms. If one is still moved to the background, wait for it to exit and use its exit code; never report a check as not run because it was slow.'
 // How commands run (see the header); client sessions also have a Bash hook that allows only mp-run and mp-data.
 const RUN_RULE = BRACED
   ? `Your shell resets between calls, so run every command exactly as written and report it verbatim. In this S0 bootstrap run (${RUNNER} does not exist yet) a command is anchored as \`. ${PATHS.env_file} && export MP_DB_SUFFIX=<your slot> && cd ${PATHS.pipeline} && { <command>; }\`, and a data-plane call runs unwrapped as \`${WRAPPER} --slot <your slot> <command> ...\`.`

@@ -8,7 +8,9 @@ converted with UCanAccess's own SQLConverter (the path UCanAccess takes for the 
 a file) and executed on `UcanaccessConnection.getHSQLDBConnection()`. Queries on queries
 therefore resolve the same way in a database built from a dataset (which has no saved queries)
 and in a copy of a back end that lacks them; a view of the same name that UCanAccess loaded from
-the file itself is replaced by the catalog's version.
+the file itself is replaced by the catalog's version. Every `source.*` of a view is written as
+the source's own qualified columns before HSQLDB stores it (`expand_stars`), so `Orders.*` over a
+join of sources that share column names is Orders' columns, as in Access.
 
 UCanAccess's Nz rounds currency and decimal arguments (its NUMERIC overload has scale 0), so every
 view and statement first goes through `catalog.nz_for_engine`, which writes such calls as
@@ -106,6 +108,28 @@ def bind(sql: str, params: list[dict], values: dict) -> str:
 
 def _clean(sql: str) -> str:
     return sql.strip().rstrip(";").strip()
+
+
+_IDENT = r'(?:"(?:[^"]|"")+"|[A-Za-z_][\w$]*)'
+# `source.*` in converted (HSQLDB) SQL; never a schema-qualified `PUBLIC.T.*`
+_STAR = re.compile(rf'(?<![\w$."])({_IDENT})\s*\.\s*\*')
+# `source [AS] alias` right after FROM, JOIN, a comma or an opening parenthesis
+_ALIAS = re.compile(
+    rf'(?:\bFROM|\bJOIN|,|\()\s*({_IDENT})\s+(?:AS\s+)?({_IDENT})(?![\w$."])',
+    re.IGNORECASE,
+)
+_NOT_ALIAS = {
+    "INNER", "LEFT", "RIGHT", "FULL", "OUTER", "CROSS", "JOIN", "ON", "WHERE", "GROUP",
+    "ORDER", "HAVING", "UNION", "AS", "SELECT", "FROM", "LIMIT", "OFFSET", "NATURAL",
+}  # fmt: skip
+
+
+def _hsql_name(ident: str) -> str:
+    """The stored HSQLDB name of an identifier: "quoted" as written, otherwise upper case."""
+    ident = ident.strip()
+    if ident.startswith('"'):
+        return ident[1:-1].replace('""', '"')
+    return ident.upper()
 
 
 def _key(name: str) -> str:
@@ -266,6 +290,61 @@ class AccessReference:
         """Access SQL as the engine runs it: Nz written so UCanAccess does not round it."""
         return cat.nz_for_engine(sql, lambda expr: self._is_text(sql, expr))[0]
 
+    def _columns_of(self, table: str) -> list[str]:
+        """The column names of an HSQLDB table or view (exact stored name), in order."""
+        ps = self._hsql().prepareStatement(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS"
+            " WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION"
+        )
+        try:
+            ps.setString(1, table)
+            rs = ps.executeQuery()
+            out = []
+            while rs.next():
+                out.append(str(rs.getString(1)))
+            rs.close()
+            return out
+        finally:
+            ps.close()
+
+    def expand_stars(self, converted: str) -> str:
+        """`converted` (HSQLDB SQL from SQLConverter) with every `source.*` written as the
+        source's columns, each qualified: `source."COL1",source."COL2",...`.
+
+        Access's `Orders.*` is exactly the columns of Orders. HSQLDB stores a view with its
+        asterisks expanded, and when the source sits inside a parenthesised join it writes the
+        names unqualified; the view is then compiled from that text, where a name that several
+        joined sources share (Notes, AddedBy, ...) resolves to the first of them in FROM order,
+        not to Orders. Explicit qualified columns are stored as written. A qualifier that names
+        no table or view, nor an alias of one (a derived table), is left as it is when the
+        query has no join, and raises UnresolvedStarError when it has one."""
+        masked = cat.mask(converted, brackets=False)
+        aliases: dict[str, str] = {}
+        for m in _ALIAS.finditer(masked):
+            src = _hsql_name(converted[m.start(1) : m.end(1)])
+            alias = _hsql_name(converted[m.start(2) : m.end(2)])
+            if alias.upper() not in _NOT_ALIAS:
+                aliases.setdefault(alias, src)
+        out = converted
+        for m in sorted(_STAR.finditer(masked), key=lambda m: -m.start()):
+            qualifier = converted[m.start(1) : m.end(1)]
+            name = _hsql_name(qualifier)
+            columns = self._columns_of(aliases.get(name, name))
+            if not columns and name in aliases:
+                columns = self._columns_of(name)
+            if not columns:
+                if _JOIN.search(masked):
+                    # a derived table's `.*` over a join could come back from the wrong
+                    # source: refuse the view (the unit lands in view_errors) rather than
+                    # record it silently wrong
+                    raise UnresolvedStarError(name)
+                continue
+            listed = ",".join(
+                qualifier + '."' + c.replace('"', '""') + '"' for c in columns
+            )
+            out = out[: m.start()] + listed + out[m.end() :]
+        return out
+
     def _create_view(self, name: str, sql: str, replace: bool) -> None:
         conv = bridge.jclass("net.ucanaccess.converters.SQLConverter")
         escaped = self._view_name(name)
@@ -276,7 +355,7 @@ class AccessReference:
             self._kinds = None
         body = self.engine_sql(_clean(cat.strip_parameters(sql)))
         text = f"CREATE VIEW {escaped} AS {body}"
-        converted = _clean(str(conv.convertSQL(text, True).getSql()))
+        converted = self.expand_stars(_clean(str(conv.convertSQL(text, True).getSql())))
         st = self._hsql().createStatement()
         st.execute(converted)
         st.close()
@@ -435,6 +514,13 @@ class AccessReference:
             raise
         except Exception as exc:  # noqa: BLE001
             raise UnitError(bridge.java_exception_class(exc)) from None
+
+
+_JOIN = re.compile(r"\bJOIN\b", re.IGNORECASE)
+
+
+class UnresolvedStarError(ValueError):
+    """A view's `source.*` names no table or view in a query with a join."""
 
 
 def _placeholder(ptype: str) -> str:

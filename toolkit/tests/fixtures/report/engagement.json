@@ -1,0 +1,58 @@
+{
+  "id": "fixture-eng",
+  "client": "Synthetic report fixture",
+  "bootstrap": true,
+  "db_name": "fixture_eng",
+  "source": {
+    "kind": "accdb",
+    "path": "{{p.private}}/sources/shop.accdb",
+    "bytes": 1024,
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "data_copy": null,
+    "data_copy_sha256": null,
+    "saved_with_data": true,
+    "compiled_only": false,
+    "layout": "single-file",
+    "backends": [],
+    "external_links": [],
+    "licence": "synthetic"
+  },
+  "target": {"repo": "example-org/example-repo", "root": "shop", "mode": "github", "local_path": null},
+  "records": null,
+  "app": {"slug": "shop", "project_name": "Shop", "timezone": "UTC", "use_tz": false},
+  "database": {"primary": "postgresql", "verify_also": ["mssql"], "stage1": null},
+  "auth": {"mode": "local"},
+  "hosting": {"provider": "none", "managed_by": "us"},
+  "data_policy": {
+    "redact": "always",
+    "execution": "cloud-allowed",
+    "scrub_design": true,
+    "commit_data": false,
+    "ai_terms": null,
+    "client_consent": null,
+    "retention_days_after_acceptance": null
+  },
+  "secrets": {
+    "github_push": null,
+    "accdb_password_ref": null,
+    "stage1_target_url_ref": null,
+    "staging_db_url_ref": null,
+    "production_db_url_ref": null,
+    "entra": null
+  },
+  "scope": {"areas_hint": [], "must_keep": [], "foundation": []},
+  "assets": {"screenshots": null},
+  "commercial": {"tier": "demo", "quote_is_simulated": true, "milestones": []},
+  "care_plan": null,
+  "environment": {
+    "windows_box": {
+      "available": false,
+      "host": null,
+      "access_build": null,
+      "client_data_allowed": false,
+      "disk_encrypted": null,
+      "copies": []
+    }
+  },
+  "expected_inventory": {}
+}

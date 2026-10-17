@@ -1,0 +1,9 @@
+{
+  "format_version": 1,
+  "pipeline": "/ROOT/pipeline",
+  "target_repo": "/ROOT/target",
+  "target": "/ROOT/target/shop",
+  "private": "/ROOT/home/engagements/fixture-eng/private",
+  "records": "/ROOT/records/fixture-eng",
+  "env_file": "/ROOT/home/env"
+}

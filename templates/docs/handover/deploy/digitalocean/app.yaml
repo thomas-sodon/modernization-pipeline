@@ -1,0 +1,41 @@
+# Skeleton for {{p.target}}/docs/deploy/app.yaml (S6.handover, hosting.provider digitalocean):
+# an App Platform app spec. Replace every "fill:" comment with the engagement's value or
+# delete it; a filled copy keeps no "fill:" line. Secret values are entered as encrypted
+# variables in the control panel, never written here.
+name: app-name # fill: the app name agreed with the client
+region: ams # fill: the region closest to the users
+services:
+  - name: web
+    github:
+      repo: owner/repo # fill: engagement target.repo
+      branch: main
+      deploy_on_push: true
+    source_dir: app # fill: <target.root>/app
+    environment_slug: python
+    build_command: pip install uv && uv export --frozen --no-dev --no-hashes --no-emit-project > requirements.txt && pip install -r requirements.txt && python manage.py collectstatic --noinput
+    run_command: gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 3
+    http_port: 8080
+    instance_size_slug: apps-s-1vcpu-1gb # fill: size agreed with the client
+    instance_count: 1
+    health_check:
+      http_path: /health/
+    envs:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: DJANGO_SECRET_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      # fill: one entry per remaining setting of the runbook's Configuration and secrets section
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    github:
+      repo: owner/repo # fill: engagement target.repo
+      branch: main
+    source_dir: app # fill: <target.root>/app
+    environment_slug: python
+    run_command: python manage.py migrate --noinput
+  # fill: one job per JOBS entry (POST_DEPLOY for @reboot; a scheduled job for a cron schedule)
