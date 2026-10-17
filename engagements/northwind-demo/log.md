@@ -7,3 +7,6 @@
 | 2026-10-16 | S2 | 1 | wf_66e4222f-e20 | bootstrap | 12 | 7/14 | 1 | 920 | 2389855 | 99691276 | 52360 | 32.94 | pending | pending | pending | no | 1 blocking finding(s) |
 | 2026-10-16 | S2 | 2 | wf_4035b199-dd7 | bootstrap | 12 | 7/14 | 1 | 644 | 1346819 | 27832463 | 50691 | 13.32 | 0 | 0 | 0 | yes | note: 8 units needs-access-confirmation recorded as UCanAccess reference (no Windows run for the demo) |
 | 2026-10-16 | S3 | 1 | wf_cc51496a-01d | bootstrap | 9 | 5/10 | 1 | 496 | 1315588 | 35614849 | 43896 | 14.58 | 0 | 0 | 0 | yes | relink not rehearsed (no Windows box); note: mp-data mssql pre-start probe reports ConnectionStringParseError although load and verify pass |
+| 2026-10-16 | S4 | 1 | wf_79374337-270 | bootstrap | 2 | 6/12 | 0 | 210 | 394911 | 21500270 | 10148 | 6.48 | pending | pending | pending | no | S4.template blocked; S4.models skipped; S4.data skipped; S4.review skipped |
+| 2026-10-16 | S4 | 2 | wf_3c221ebe-8dc | bootstrap | 3 | 6/12 | 0 | 42 | 98953 | 1120869 | 6007 | 0.84 | pending | pending | pending | no | S4.models blocked; S4.data skipped; S4.review skipped |
+| 2026-10-17 | S4 | 3 | wf_7afebc43-394 | bootstrap | 10 | 5/11 | 1 | 950 | 3132858 | 76481563 | 66794 | 32.3 | 0 | 0 | 0 | yes | none |

@@ -6,7 +6,8 @@ maintenance database (postgres, master) is a fake engine that records statements
 owner query, and every other database is an in-memory SQLite engine. Fixtures:
 toolkit/tests/fixtures/stage1/ (hand-written, synthetic): a 3-table schema.json with autonumber,
 yesno, currency, datetime, memo, single, a multi-value column and an enforced relationship, its
-dataset directory, and the expected DDL. No client file, demo source or record is read.
+dataset directory, the expected DDL, and a two-table workbook data-model.json (S4.models,
+`--schema-from data-model`). No client file, demo source or record is read.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from pathlib import Path
 import jsonschema
 import pytest
 import sqlalchemy as sa
+from sqlalchemy import schema as sa_schema
 from sqlalchemy.dialects import mssql, postgresql
 from sqlalchemy.pool import StaticPool
 
@@ -302,6 +304,59 @@ def test_sql_server_second_cascade_path_becomes_no_action():
     }
 
 
+@pytest.mark.parametrize("ctype", ["byte", "integer", "longinteger"])
+def test_only_an_autonumber_key_gets_an_identity(ctype):
+    """A single integer key that Access numbers by hand stays a plain column (S4.models)."""
+    schema = {
+        "format_version": 1,
+        "tables": [
+            {
+                "name": "Codes",
+                "role": "data",
+                "columns": [
+                    {"name": "CodeID", "type": ctype, "required": True},
+                    {"name": "Label", "type": "text", "size": 20, "required": True},
+                ],
+                "primary_key": ["CodeID"],
+                "indexes": [],
+            },
+            {
+                "name": "Numbered",
+                "role": "data",
+                "columns": [
+                    {"name": "ID", "type": "autonumber", "required": True},
+                    {
+                        "name": "Rank",
+                        "type": ctype,
+                        "required": False,
+                        "properties": {"DefaultValue": "0"},
+                    },
+                ],
+                "primary_key": ["ID"],
+                "indexes": [],
+            },
+        ],
+        "relationships": [],
+    }
+    design = stage1.Design(Path("x"), "0" * 64, schema, schema["tables"])
+    for name, dialect in (
+        ("postgresql", postgresql.dialect()),
+        ("mssql", mssql.dialect()),
+    ):
+        plan = stage1.build_plan(design, name)
+        assert plan.identity == {"Numbered": "ID"}
+        codes = str(
+            sa_schema.CreateTable(plan.tables["Codes"]).compile(dialect=dialect)
+        )
+        assert "SERIAL" not in codes.upper()
+        assert "IDENTITY" not in codes.upper()
+        numbered = str(
+            sa_schema.CreateTable(plan.tables["Numbered"]).compile(dialect=dialect)
+        )
+        assert "IDENTITY" in numbered.upper()
+        assert plan.tables["Numbered"].c["Rank"].autoincrement is False
+
+
 # ------------------------------------------------------------------ targets and URLs
 
 
@@ -440,13 +495,162 @@ def test_replace_on_a_secret_target_exits_2(make_engagement, tmp_path, capfd, se
     assert servers.urls == []
 
 
-def test_data_model_is_not_built_yet(make_engagement, tmp_path, capfd, servers):
+# ------------------------------------------------------------------ workbook data model (S4.models)
+
+
+DEV_URL = "postgresql://agent:agentpw@127.0.0.1:55432/dev_db"
+XLSM_SOURCE = {"kind": "xlsm", "path": "{{p.private}}/sources/book.xlsm"}
+
+
+def put_data_model(eng: Path, doc: Path | dict = FIX / "data-model.json") -> Path:
+    paths = json.loads((eng.parent / "paths.local.json").read_text())
+    target = Path(paths["target"]) / "analysis" / "data-model.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(doc, dict):
+        target.write_text(json.dumps(doc), encoding="utf-8")
+    else:
+        shutil.copyfile(doc, target)
+    return target
+
+
+def loaded(eng: Path) -> dict:
+    from toolkit.engagement import load
+
+    return load(eng)
+
+
+def test_data_model_fixture_passes_schema_lint():
+    from toolkit.rules import lint_data_model
+
+    doc = json.loads((FIX / "data-model.json").read_text(encoding="utf-8"))
+    assert lint_data_model(doc) == []
+
+
+@pytest.mark.parametrize("dialect", ["postgresql", "mssql"])
+def test_data_model_builds_the_same_metadata(make_engagement, tmp_path, dialect):
+    from toolkit import typemap
+
+    eng = make_eng(tmp_path, make_engagement, source=XLSM_SOURCE)
+    path = put_data_model(eng)
+    design = stage1.load_design(loaded(eng), "data-model")
+    assert design.label == "data-model.json"
+    assert design.path == path
+    assert design.sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
+    plan = stage1.build_plan(design, dialect)
+    assert list(plan.tables) == ["customer", "invoice"]
+    doc = json.loads((FIX / "data-model.json").read_text(encoding="utf-8"))
+    compiled = postgresql.dialect() if dialect == "postgresql" else mssql.dialect()
+    for t in doc["tables"]:
+        table = plan.tables[t["name"]]
+        assert [c.name for c in table.columns] == [c["name"] for c in t["columns"]]
+        for c in t["columns"]:
+            want = typemap.sa_column(c, primary_key=c["name"] in t["primary_key"])
+            got = table.c[c["name"]]
+            assert str(got.type.compile(dialect=compiled)) == str(
+                want.type.compile(dialect=compiled)
+            )
+            assert got.nullable == want.nullable
+    assert plan.expected_pk == {
+        "customer": ["customer_id"],
+        "invoice": ["invoice_number"],
+    }
+    assert plan.identity == {"customer": "customer_id"}
+    assert plan.expected_unique["customer"] == {
+        ("customer_customer_name", ("customer_name",))
+    }
+    assert plan.expected_fks["invoice"] == {
+        (
+            "customer_invoices",
+            ("customer_id",),
+            "customer",
+            ("customer_id",),
+            "CASCADE",
+            None,
+        )
+    }
+    ddl = stage1.ddl_text(plan, compiled)
+    assert "CREATE TABLE customer" in ddl
+    assert "ON DELETE CASCADE" in ddl
+
+
+def test_auto_picks_the_data_model_only_for_xlsm(make_engagement, tmp_path):
+    xlsm = make_eng(tmp_path / "x", make_engagement, source=XLSM_SOURCE)
+    put_data_model(xlsm)
+    assert stage1.load_design(loaded(xlsm), "auto").label == "data-model.json"
+    access = make_eng(tmp_path / "a", make_engagement)
+    put_data_model(access)
+    eng = loaded(access)
+    assert stage1.load_design(eng, "auto").label == "schema.json"
+    assert stage1.load_design(eng, "model").label == "schema.json"
+    assert stage1.load_design(eng, "data-model").label == "data-model.json"
+
+
+def test_schema_only_replace_and_verify_from_the_data_model(
+    make_engagement, tmp_path, capfd, servers, monkeypatch
+):
+    def refuse(*_a, **_k):
+        raise AssertionError("a dataset was read")
+
+    monkeypatch.setattr(tds, "read_meta", refuse)
+    monkeypatch.setattr(tds, "iter_table", refuse)
+    monkeypatch.setattr(tds, "open_backend", refuse)
+    eng = make_eng(tmp_path, make_engagement, schema=None, source=XLSM_SOURCE)
+    put_data_model(eng)
+    base = ("stage1", eng, "--target-db", DEV_URL, "--schema-from", "auto")
+    code, summary = run_cli(capfd, *base, "--schema-only", "--replace")
+    assert code == 0, summary
+    assert list(summary["sha256s"]) == ["data-model.json"]
+    code, summary = run_cli(capfd, *base, "--schema-only", "--verify")
+    assert code == 0, summary
+    assert [e["table"] for e in summary["tables"]] == ["customer", "invoice"]
+    with servers.target("postgresql", "dev_db").connect() as conn:
+        insp = sa.inspect(conn)
+        assert sorted(insp.get_table_names()) == ["customer", "invoice"]
+        fks = insp.get_foreign_keys("invoice")
+        assert [(f["referred_table"], f["constrained_columns"]) for f in fks] == [
+            ("customer", ["customer_id"])
+        ]
+        conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN extra INTEGER")
+    code, summary = run_cli(capfd, *base, "--schema-only", "--verify")
+    assert code == 1
+    assert any(
+        "invoice.extra is not in data-model.json" in m for m in summary["messages"]
+    )
+
+
+def test_missing_data_model_exits_2(make_engagement, tmp_path, capfd, servers):
     eng = make_eng(tmp_path, make_engagement)
     code, summary = run_cli(
         capfd, "stage1", eng, *LOCAL, "--schema-only", "--schema-from", "data-model"
     )
     assert code == 2
-    assert summary["messages"] == [stage1.DATA_MODEL_MSG]
+    assert summary["messages"] == [stage1.DATA_MODEL_MISSING]
+    assert servers.urls == []
+
+
+def test_data_model_builds_the_schema_only(make_engagement, tmp_path, capfd, servers):
+    eng = make_eng(tmp_path, make_engagement, source=XLSM_SOURCE)
+    put_data_model(eng)
+    code, summary = run_cli(capfd, "stage1", eng, "--target-db", DEV_URL, *DATASET)
+    assert code == 2
+    assert summary["messages"] == [stage1.DATA_MODEL_ROWS]
+    assert servers.urls == []
+
+
+def test_data_model_that_fails_schema_lint_exits_2(
+    make_engagement, tmp_path, capfd, servers
+):
+    doc = json.loads((FIX / "data-model.json").read_text(encoding="utf-8"))
+    doc["tables"][1]["columns"][0]["name"] = "InvoiceNumber"
+    eng = make_eng(tmp_path, make_engagement, source=XLSM_SOURCE)
+    put_data_model(eng, doc)
+    code, summary = run_cli(
+        capfd, "stage1", eng, "--target-db", DEV_URL, "--schema-only", "--replace"
+    )
+    assert code == 2
+    assert "fails schema-lint" in summary["messages"][0]
+    assert "InvoiceNumber is not snake_case" in summary["messages"][0]
+    assert servers.urls == []
 
 
 # ------------------------------------------------------------------ databases on the server

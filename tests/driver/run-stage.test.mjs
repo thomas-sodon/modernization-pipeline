@@ -152,6 +152,9 @@ async function runDriver(a, scenario = {}) {
     return null
   }
   async function agent(prompt, o = {}) {
+    // Like the real Workflow tool, refuse a schema whose enum repeats an item (JSON Schema requires unique items).
+    const dupEnum = s => s && typeof s === 'object' && ((Array.isArray(s.enum) && new Set(s.enum.map(v => JSON.stringify(v))).size !== s.enum.length) || Object.values(s).some(dupEnum))
+    if (dupEnum(o.schema)) throw new Error(`agent({schema}) received an invalid JSON Schema: enum must NOT have duplicate items (${o.label})`)
     if (running >= CAP) await new Promise(r => queue.push(r))
     running++
     peak = Math.max(peak, running)

@@ -1,0 +1,114 @@
+"""Sign-in adapters.
+
+- Local accounts: registration is closed unless ACCOUNT_ALLOW_REGISTRATION is set.
+- Microsoft (Entra ID): the tenant decides who may sign in, so a first Microsoft
+  sign-in creates the account. On every Microsoft sign-in the user's Entra group
+  object ids (the ID token's groups claim, kept in extra_data["groups"] by
+  users/microsoft.py) are mapped to roles through settings.ENTRA_GROUP_ROLES
+  (DJANGO_ENTRA_GROUP_ROLES: group object id -> role name), and the user is put in
+  the Django Group of each role. Unknown groups give no role. Roles named in the
+  mapping that the user's groups no longer give are taken away.
+"""
+
+from __future__ import annotations
+
+import typing
+
+from allauth.account.adapter import DefaultAccountAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from django.conf import settings
+from django.contrib.auth.models import Group
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+    from collections.abc import Mapping
+
+    from allauth.socialaccount.models import SocialLogin
+    from django.http import HttpRequest
+
+    from {{ slug }}.users.models import User
+
+MICROSOFT = "microsoft"
+
+
+def entra_group_ids(sociallogin: SocialLogin) -> list[str]:
+    """The group object ids the provider sent (none when the claim is not enabled)."""
+    groups = (sociallogin.account.extra_data or {}).get("groups") or []
+    if not isinstance(groups, list):
+        return []
+    return [group for group in groups if isinstance(group, str)]
+
+
+def roles_for_groups(
+    group_ids: Iterable[str],
+    group_roles: Mapping[str, str],
+) -> list[str]:
+    """Role names for the given group object ids; ids not in the mapping give none."""
+    return sorted({group_roles[g] for g in group_ids if group_roles.get(g)})
+
+
+def assign_entra_roles(user: User, sociallogin: SocialLogin) -> list[str]:
+    """Put user in the Django Group of every role its Entra groups map to."""
+    if sociallogin.account.provider != MICROSOFT:
+        return []
+    group_roles = getattr(settings, "ENTRA_GROUP_ROLES", {}) or {}
+    roles = roles_for_groups(entra_group_ids(sociallogin), group_roles)
+    managed = {role for role in group_roles.values() if role}
+    for name in sorted(managed - set(roles)):
+        user.groups.remove(*Group.objects.filter(name=name))
+    for name in roles:
+        group, _ = Group.objects.get_or_create(name=name)
+        user.groups.add(group)
+    return roles
+
+
+class AccountAdapter(DefaultAccountAdapter):
+    def is_open_for_signup(self, request: HttpRequest) -> bool:
+        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", False)
+
+
+class SocialAccountAdapter(DefaultSocialAccountAdapter):
+    def is_open_for_signup(
+        self,
+        request: HttpRequest,
+        sociallogin: SocialLogin,
+    ) -> bool:
+        if sociallogin.account.provider == MICROSOFT:
+            return True
+        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", False)
+
+    def pre_social_login(self, request: HttpRequest, sociallogin: SocialLogin) -> None:
+        super().pre_social_login(request, sociallogin)
+        if sociallogin.is_existing:
+            assign_entra_roles(sociallogin.user, sociallogin)
+
+    def save_user(
+        self,
+        request: HttpRequest,
+        sociallogin: SocialLogin,
+        form=None,
+    ) -> User:
+        user = super().save_user(request, sociallogin, form)
+        assign_entra_roles(user, sociallogin)
+        return user
+
+    def populate_user(
+        self,
+        request: HttpRequest,
+        sociallogin: SocialLogin,
+        data: dict[str, typing.Any],
+    ) -> User:
+        """
+        Populates user information from social provider info.
+
+        See: https://docs.allauth.org/en/latest/socialaccount/advanced.html#creating-and-populating-user-instances
+        """
+        user = super().populate_user(request, sociallogin, data)
+        if not user.name:
+            if name := data.get("name"):
+                user.name = name
+            elif first_name := data.get("first_name"):
+                user.name = first_name
+                if last_name := data.get("last_name"):
+                    user.name += f" {last_name}"
+        return user

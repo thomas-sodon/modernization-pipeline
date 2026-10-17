@@ -1,0 +1,397 @@
+"""Overlay behaviour (written by toolkit new-app).
+
+App discovery and MP_ONLY_AREAS, feature URLs and nav, test-database names, database
+settings, /health/, closed registration, the sites migration guard and djLint on the
+templates. Fake packages live in tmp_path, never inside the app tree.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import importlib
+import os
+import subprocess
+import sys
+from http import HTTPStatus
+from pathlib import Path
+from types import SimpleNamespace
+
+import environ
+import pytest
+from django.conf import settings
+from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
+
+from config import database
+from config import discovery
+from config import testdb
+from config.context_processors import feature_nav
+from {{ slug }}.users.adapters import AccountAdapter
+
+APP_DIR = Path(__file__).resolve().parent.parent
+SLUG = "{{ slug }}"
+DB_NAME = "{{ db_name }}"
+MAX_DB_NAME = 63
+SERVER = "postgres://u:p@127.0.0.1:5432"
+DB_NAME_EXPR = "settings.DATABASES['default']['NAME']"
+
+
+def make_app(
+    root: Path,
+    name: str,
+    *,
+    feature: bool = False,
+    urls: bool = False,
+) -> Path:
+    pkg = root / name
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    lines = [
+        "from django.apps import AppConfig",
+        "",
+        "",
+        "class FakeConfig(AppConfig):",
+        f"    name = {name!r}",
+        f"    label = {name!r}",
+    ]
+    if feature:
+        label = name.replace("_", " ").title()
+        lines += ["    feature = True", f"    nav_label = {label!r}"]
+    (pkg / "apps.py").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if urls:
+        (pkg / "urls.py").write_text(
+            "from django.http import HttpResponse\n"
+            "from django.urls import path\n\n"
+            f"app_name = {name!r}\n"
+            "urlpatterns = [\n"
+            "    path('', lambda request: HttpResponse('ok'), name='index'),\n"
+            "]\n",
+            encoding="utf-8",
+        )
+    return pkg
+
+
+# ---------------------------------------------------------------- discovery
+
+
+def test_discovery_lists_every_apps_py_sorted_without_users(tmp_path):
+    apps_dir = tmp_path / "fakeslug"
+    for name in ("users", "orders", "core", "legacy", "inventory"):
+        make_app(apps_dir, name)
+    (apps_dir / "static").mkdir()
+    (apps_dir / "templates").mkdir()
+    assert discovery.discover_local_apps(apps_dir, {}) == [
+        "fakeslug.core",
+        "fakeslug.inventory",
+        "fakeslug.legacy",
+        "fakeslug.orders",
+    ]
+
+
+def test_only_areas_keeps_core_legacy_domain_and_the_named_areas(tmp_path):
+    apps_dir = tmp_path / "fakeslug"
+    for name in ("users", "orders", "core", "legacy", "domain", "inventory", "reports"):
+        make_app(apps_dir, name)
+    env = {"MP_ONLY_AREAS": "orders, reports"}
+    assert discovery.discover_local_apps(apps_dir, env) == [
+        "fakeslug.core",
+        "fakeslug.domain",
+        "fakeslug.legacy",
+        "fakeslug.orders",
+        "fakeslug.reports",
+    ]
+
+
+def test_only_areas_never_imports_another_area(tmp_path):
+    apps_dir = tmp_path / "fakeslug"
+    make_app(apps_dir, "orders")
+    broken = apps_dir / "halfwritten"
+    broken.mkdir()
+    (broken / "apps.py").write_text("this is not python(\n", encoding="utf-8")
+    assert discovery.discover_local_apps(apps_dir, {"MP_ONLY_AREAS": "orders"}) == [
+        "fakeslug.orders",
+    ]
+
+
+def test_only_areas_with_an_unknown_id_raises(tmp_path):
+    apps_dir = tmp_path / "fakeslug"
+    make_app(apps_dir, "orders")
+    with pytest.raises(ImproperlyConfigured, match="nosuch"):
+        discovery.discover_local_apps(apps_dir, {"MP_ONLY_AREAS": "orders,nosuch"})
+
+
+def test_empty_only_areas_means_every_area(tmp_path):
+    apps_dir = tmp_path / "fakeslug"
+    for name in ("orders", "inventory"):
+        make_app(apps_dir, name)
+    assert discovery.discover_local_apps(apps_dir, {"MP_ONLY_AREAS": " "}) == [
+        "fakeslug.inventory",
+        "fakeslug.orders",
+    ]
+
+
+def test_settings_install_users_and_the_discovered_apps():
+    local = [app for app in settings.INSTALLED_APPS if app.startswith(f"{SLUG}.")]
+    assert local[0] == f"{SLUG}.users"
+    assert local[1:] == discovery.discover_local_apps(APP_DIR / SLUG)
+
+
+# ---------------------------------------------------------------- feature URLs and nav
+
+
+@pytest.fixture
+def fake_feature_apps(tmp_path, monkeypatch):
+    root = tmp_path / "fakepkgs"
+    root.mkdir()
+    make_app(root, "mpfake_area", feature=True, urls=True)
+    make_app(root, "mpfake_nourls", feature=True)
+    make_app(root, "mpfake_plain", urls=True)
+    (root / "mpfake_urlconf.py").write_text(
+        "from config.discovery import feature_urlpatterns\n\n"
+        "urlpatterns = feature_urlpatterns()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(root))
+    names = ["mpfake_area", "mpfake_nourls", "mpfake_plain"]
+    with override_settings(
+        INSTALLED_APPS=[*settings.INSTALLED_APPS, *names],
+        ROOT_URLCONF="mpfake_urlconf",
+    ):
+        yield
+    for module in list(sys.modules):
+        if module.startswith("mpfake_"):
+            del sys.modules[module]
+
+
+@pytest.mark.usefixtures("fake_feature_apps")
+def test_feature_apps_with_urls_are_included_at_their_label():
+    patterns = discovery.feature_urlpatterns()
+    assert [str(p.pattern) for p in patterns] == ["mpfake_area/"]
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("fake_feature_apps")
+def test_feature_url_serves(client):
+    response = client.get("/mpfake_area/")
+    assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.usefixtures("fake_feature_apps")
+def test_feature_nav_lists_feature_apps_sorted(rf):
+    expected = [("Mpfake Area", "/mpfake_area/"), ("Mpfake Nourls", "/mpfake_nourls/")]
+    assert discovery.feature_nav_items() == expected
+    context = feature_nav(rf.get("/"))
+    assert context["feature_nav"] == expected
+    assert context["project_name"] == settings.PROJECT_NAME
+
+
+# ---------------------------------------------------------------- test databases
+
+
+def test_test_db_name_with_and_without_suffix():
+    assert testdb.make_test_db_name(DB_NAME, "test_", "s5_x") == f"test_{DB_NAME}_s5_x"
+    assert testdb.make_test_db_name(DB_NAME, "test_", "") == f"test_{DB_NAME}"
+
+
+def test_prefix_and_suffix_come_from_the_environment():
+    env = {"MP_TEST_DB_PREFIX": "mpdata_test_", "MP_DB_SUFFIX": "s4_probe"}
+    assert testdb.prefix_and_suffix(env) == ("mpdata_test_", "s4_probe")
+    assert testdb.prefix_and_suffix({}) == ("test_", "")
+
+
+def test_long_test_db_names_are_cut_and_hashed():
+    name = "a" * 41
+    suffix = "s" * 24
+    full = f"mpdata_test_{name}_{suffix}"
+    cut = testdb.make_test_db_name(name, "mpdata_test_", suffix)
+    assert len(full) > MAX_DB_NAME
+    assert len(cut) == MAX_DB_NAME
+    assert cut.startswith(f"mpdata_test_{name}_")
+    assert cut.endswith("_" + hashlib.sha1(full.encode()).hexdigest()[:8])  # noqa: S324
+
+
+def test_applying_the_helper_twice_gives_the_same_name():
+    dbs = {"default": {"NAME": DB_NAME}}
+    testdb.apply_test_db_names(dbs, "test_", "slot")
+    first = dbs["default"]["TEST"]["NAME"]
+    testdb.apply_test_db_names(dbs, "test_", "slot")
+    assert dbs["default"]["TEST"]["NAME"] == first == f"test_{DB_NAME}_slot"
+
+
+# ---------------------------------------------------------------- database settings
+
+
+def test_database_url_wins_over_pg_url():
+    env = {
+        "DATABASE_URL": "postgres://u:p@db.example.com:5432/chosen",
+        "PG_URL": "postgresql://u:p@127.0.0.1:55432",
+    }
+    assert database.database_settings(env, DB_NAME)["NAME"] == "chosen"
+
+
+def test_pg_url_fallback_adds_the_db_name():
+    env = {"PG_URL": "postgresql://u:p@127.0.0.1:55432/"}
+    config = database.database_settings(env, DB_NAME)
+    assert config["NAME"] == DB_NAME
+    assert config["ENGINE"] == "django.db.backends.postgresql"
+    assert config["HOST"] == "127.0.0.1"
+
+
+def test_no_database_variable_raises_naming_both():
+    with pytest.raises(ImproperlyConfigured, match="DATABASE_URL") as info:
+        database.database_settings({}, DB_NAME)
+    assert "PG_URL" in str(info.value)
+
+
+def test_mssql_url_gets_the_python_driver_and_local_trust():
+    config = database.database_config("mssql://u:p@127.0.0.1:14330/somedb")
+    assert config["ENGINE"] == "mssql"
+    assert config["NAME"] == "somedb"
+    assert config["OPTIONS"]["python_driver"] == "mssql_python"
+    assert config["OPTIONS"]["extra_params"] == "TrustServerCertificate=yes"
+
+
+def test_remote_mssql_url_keeps_certificate_checks():
+    config = database.database_config("mssql://u:p@sql.example.com:1433/somedb")
+    assert config["OPTIONS"]["python_driver"] == "mssql_python"
+    assert "extra_params" not in config["OPTIONS"]
+
+
+def test_dot_env_never_overrides_the_environment(tmp_path, monkeypatch):
+    dot_env = tmp_path / ".env"
+    dot_env.write_text(f"DATABASE_URL={SERVER}/from_file\n", encoding="utf-8")
+    monkeypatch.setenv("DATABASE_URL", f"{SERVER}/from_environment")
+    environ.Env.read_env(str(dot_env), overwrite=False)
+    assert os.environ["DATABASE_URL"].endswith("/from_environment")
+
+
+def settings_value(expr: str, env: dict) -> str:
+    code = f"from django.conf import settings; print({expr})"
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code],
+        cwd=APP_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+    return result.stdout.strip()
+
+
+def base_env() -> dict:
+    keep = ("PATH", "HOME", "LD_LIBRARY_PATH", "SYSTEMROOT")
+    env = {k: v for k, v in os.environ.items() if k in keep}
+    env["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
+    return env
+
+
+def test_settings_take_database_url_from_the_environment():
+    env = base_env() | {"DATABASE_URL": f"{SERVER}/from_environment"}
+    assert settings_value(DB_NAME_EXPR, env) == "from_environment"
+
+
+def test_test_settings_name_the_test_database_with_the_helper():
+    env = base_env() | {
+        "DATABASE_URL": f"{SERVER}/somedb",
+        "MP_TEST_DB_PREFIX": "mpdata_test_",
+        "MP_DB_SUFFIX": "s9_probe",
+    }
+    expr = "settings.DATABASES['default']['TEST']['NAME']"
+    assert settings_value(expr, env) == "mpdata_test_somedb_s9_probe"
+
+
+def test_settings_fall_back_to_pg_url_without_dot_env():
+    env = base_env() | {
+        "DJANGO_READ_DOT_ENV_FILE": "false",
+        "PG_URL": "postgresql://u:p@127.0.0.1:55432",
+    }
+    assert settings_value(DB_NAME_EXPR, env) == DB_NAME
+
+
+# ---------------------------------------------------------------- /health/ and sign-in
+
+
+@pytest.mark.django_db
+def test_health_answers_ok(client):
+    response = client.get("/health/")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"status": "ok"}
+
+
+@pytest.mark.django_db
+def test_registration_is_closed(client, rf):
+    assert settings.ACCOUNT_ALLOW_REGISTRATION is False
+    assert AccountAdapter().is_open_for_signup(rf.get("/")) is False
+    response = client.get("/accounts/signup/")
+    names = [t.name for t in response.templates]
+    assert "account/signup_closed.html" in names
+
+
+def test_microsoft_sign_in_is_off_without_a_client_id():
+    if os.environ.get("DJANGO_MICROSOFT_CLIENT_ID"):
+        pytest.skip("DJANGO_MICROSOFT_CLIENT_ID is set in this environment")
+    assert "microsoft" not in settings.SOCIALACCOUNT_PROVIDERS
+
+
+# ---------------------------------------------------------------- sites migration
+
+
+class FakeCursor:
+    def __init__(self, log):
+        self.log = log
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def execute(self, sql, params=None):
+        self.log.append(sql)
+
+    def fetchone(self):
+        return (1,)
+
+
+def run_sites_migration(vendor: str) -> list[str]:
+    module = importlib.import_module(
+        f"{SLUG}.contrib.sites.migrations.0003_set_site_domain_and_name",
+    )
+    log: list[str] = []
+    site = SimpleNamespace(id=1)
+    manager = SimpleNamespace(
+        update_or_create=lambda **kwargs: (site, True),
+        order_by=lambda *args: SimpleNamespace(first=lambda: site),
+    )
+    model = SimpleNamespace(objects=manager)
+    connection = SimpleNamespace(vendor=vendor, cursor=lambda: FakeCursor(log))
+    module._update_or_create_site_with_sequence(model, connection, "example.com", "x")  # noqa: SLF001
+    return log
+
+
+def test_sites_migration_touches_the_sequence_only_on_postgresql():
+    assert run_sites_migration("microsoft") == []
+    assert run_sites_migration("postgresql")
+
+
+@pytest.mark.django_db
+def test_sites_migration_sets_the_site_name():
+    assert Site.objects.get(id=settings.SITE_ID).name == settings.PROJECT_NAME
+
+
+# ---------------------------------------------------------------- templates
+
+
+@pytest.mark.parametrize("mode", ["--check", "--lint"])
+def test_templates_pass_the_djlint_hooks(mode):
+    djlint = Path(sys.executable).parent / "djlint"
+    result = subprocess.run(  # noqa: S603
+        [str(djlint), ".", mode, "--profile=django"],
+        cwd=APP_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout[-2000:]

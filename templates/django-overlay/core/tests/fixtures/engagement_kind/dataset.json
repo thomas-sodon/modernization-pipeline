@@ -1,0 +1,29 @@
+{
+  "format_version": 1,
+  "kind": "engagement",
+  "load_order": [
+    "Example"
+  ],
+  "name": "engagement",
+  "schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "seed": null,
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "ExampleID",
+          "type": "autonumber"
+        },
+        {
+          "name": "Label",
+          "type": "text"
+        }
+      ],
+      "file": "tables/Example.csv",
+      "name": "Example",
+      "omitted_columns": [],
+      "rows": 2,
+      "sha256": "903b2d9c1fe5f432c954fc5b9e0272955d8d97f66d73f4fc98d47e7f6cd26c6e"
+    }
+  ]
+}

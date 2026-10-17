@@ -1,0 +1,23 @@
+# Synthetic stand-in for the S0 root config: guard hooks plus the S0 ruff-check hook.
+repos:
+  - repo: local
+    hooks:
+      - id: forbid-source-files
+        name: forbid source files and private data
+        language: fail
+        entry: "Never commit source files:"
+        files: '(?i)[.](accdb|mdb)$'
+      - id: forbid-sample-outputs
+        name: forbid rendered sample outputs
+        language: fail
+        entry: "Never commit rendered sample outputs:"
+        files: '(?i)[.](pdf|eml|xlsx)$'
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--enforce-all', '--maxkb=500']
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
+    hooks:
+      - id: ruff-check
