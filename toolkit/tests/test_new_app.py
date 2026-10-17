@@ -419,7 +419,7 @@ def test_workflow_renders_for_a_subdirectory_and_for_the_repo_root(root, app_dir
         assert runs[0] == "uv sync --locked", name
         uses = [s["uses"] for s in job["steps"] if "uses" in s]
         assert uses[0] == "actions/checkout@v7"
-        assert "astral-sh/setup-uv@v10" in uses
+        assert "astral-sh/setup-uv@v10.3.0" in uses
         assert "actions/upload-artifact@v7" in uses or name == "lint"
         assert not any("toolkit" in r for r in runs), name
         assert "secrets." not in json.dumps(job)
