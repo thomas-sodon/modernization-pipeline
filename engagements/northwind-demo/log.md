@@ -10,4 +10,4 @@
 | 2026-10-16 | S4 | 1 | wf_79374337-270 | bootstrap | 2 | 6/12 | 0 | 210 | 394911 | 21500270 | 10148 | 6.48 | pending | pending | pending | no | S4.template blocked; S4.models skipped; S4.data skipped; S4.review skipped |
 | 2026-10-16 | S4 | 2 | wf_3c221ebe-8dc | bootstrap | 3 | 6/12 | 0 | 42 | 98953 | 1120869 | 6007 | 0.84 | pending | pending | pending | no | S4.models blocked; S4.data skipped; S4.review skipped |
 | 2026-10-17 | S4 | 3 | wf_7afebc43-394 | bootstrap | 10 | 5/11 | 1 | 950 | 3132858 | 76481563 | 66794 | 32.3 | 0 | 0 | 0 | yes | none |
-| 2026-10-17 | S5 | 1 | pending | bootstrap | 7 | 9/18 | 0 | see runbook | see runbook | see runbook | see runbook | see runbook | pending | pending | pending | no | S5.e2e blocked; S5.review skipped |
+| 2026-10-17 | S5 | 1 | wf_5432d2bd-144 | bootstrap | 7 | 9/18 | 0 | 1060 | 3898129 | 125752011 | 65626 | 45.96 | pending | pending | pending | no | S5.e2e blocked; S5.review skipped |
