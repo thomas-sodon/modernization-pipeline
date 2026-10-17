@@ -47,7 +47,8 @@
     "project_name": "<Display name>",
     "timezone": "<IANA time zone of the client's users, e.g. Europe/London>",
     "use_tz": false,
-    "_use_tz": "false: Access and Excel store naive local datetimes. Set true only if the source stores UTC."
+    "_use_tz": "false: Access and Excel store naive local datetimes. Set true only if the source stores UTC.",
+    "_landing": "Optional: the URL name (namespace:name) a user lands on after sign-in, set at S5 once that screen exists, e.g. orders:form_frmLogin. Default users:redirect."
   },
   "database": {
     "primary": "<mssql | postgresql>",

@@ -34,7 +34,7 @@
   },
   "records": null,
   "_records": "null: records live in <pipeline>/engagements/northwind-demo (the default for demos).",
-  "app": { "slug": "northwind", "project_name": "Northwind", "timezone": "UTC", "use_tz": false },
+  "app": { "slug": "northwind", "project_name": "Northwind", "timezone": "UTC", "use_tz": false, "landing": "orders:form_frmLogin" },
   "database": { "primary": "postgresql", "verify_also": ["mssql"], "stage1": null },
   "_database": "stage1 is null: there is no client cutover. S3 loads the engagement dataset only into the local Docker databases mpdata_northwind_demo_stage1 (PostgreSQL and SQL Server), and relink-scan prints 'not set (demo)' for the cutover facts.",
   "auth": { "mode": "local" },

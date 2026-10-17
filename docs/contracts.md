@@ -268,6 +268,7 @@ The demo target repo holds several engagements. Its root `README.md` and `NOTICE
 |---|---|
 | Engagement id | `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`, at most 40 characters. Clients get an opaque id `c<YYYY><NNN>` (`c2026001`); the client's name appears only in the records. |
 | `app.slug` | `^[a-z][a-z0-9_]{1,29}$`, not in `pipeline.json` `slug_reserved` |
+| `app.landing` | Optional URL name `<namespace>:<name>` (`^[a-z_][a-z0-9_]*:[A-Za-z0-9_]+$`) a user lands on after sign-in; `toolkit new-app` renders it as `LOGIN_REDIRECT_URL` (default `users:redirect`). Set at S5 once the landing screen exists, then regenerate the app config with `new-app`. |
 | Area and fan-out item ids | `pipeline.json` `item_ids.pattern` `^[a-z][a-z0-9_]{1,29}$`, not a Python keyword, not in `item_ids.reserved`, not the app slug, unique. An S1 area id is the S5 item id, the Django app label and the manifest `area`. |
 | Slot | `^[a-z0-9_]{1,24}$`, from the agent label (Command forms). mp-data and mp-run exit 2 on any other `--slot`. |
 | Offer key | A key of `pipeline.json` `offers` (`health-check`, `assessment`, `stage1`, `stage2-small`, `stage2-standard`, `care-plan`). A stage's `offers` lists keys (S0 `health-check`; S1 `assessment`; S3 `stage1`; S2, S4, S5, S6 `stage2-small`, `stage2-standard`), with free text in `offer_note`; engagement `commercial.purchased` lists keys. An unknown key is a driver problem. |

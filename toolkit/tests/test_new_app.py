@@ -527,3 +527,18 @@ def test_templates_that_still_fail_djlint_stop_generation(tmp_path, monkeypatch,
     monkeypatch.setattr(new_app.subprocess, "run", FakeDjlint(codes))
     with pytest.raises(new_app.NewAppError, match="djlint"):
         new_app.format_templates(tmp_path, "v1.36.4", "2026-10-16T00:00:00Z")
+
+
+def test_landing_sets_the_login_redirect_and_defaults_to_users_redirect():
+    stack = {}
+    eng = {"db_name": "d", "app": {"slug": "shop", "project_name": "Shop"}}
+    assert new_app.context(eng, stack)["landing"] == "users:redirect"
+    eng["app"]["landing"] = "orders:form_frmLogin"
+    ctx = new_app.context(eng, stack)
+    assert ctx["landing"] == "orders:form_frmLogin"
+    overlay = Path(__file__).resolve().parents[2] / "templates" / "django-overlay"
+    base = (overlay / "project" / "config" / "settings" / "base.py.j2").read_text()
+    line = [x for x in base.splitlines() if x.startswith("LOGIN_REDIRECT_URL")]
+    assert [new_app.render_text(x, ctx) for x in line] == [
+        'LOGIN_REDIRECT_URL = "orders:form_frmLogin"'
+    ]
