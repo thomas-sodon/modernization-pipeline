@@ -1,12 +1,14 @@
 """Every screen of the __area_title__ area: an anonymous user is sent to the sign-in
 page, a user without the role gets 403 and a user with the role gets 200 (a PDF body
-starts with %PDF-).
+starts with %PDF-). Every list keeps its record links unboosted, so a record opens
+as its own page and not inside the list.
 
 The contract's form of this file is one parametrize table that names every rules.json
 object of the area with type form or report and decision keep
 (docs/contracts.md#feature-app-contract): replace the example rows with them.
 """
 
+from html.parser import HTMLParser
 from http import HTTPStatus
 from typing import NamedTuple
 
@@ -42,6 +44,13 @@ SCREENS = [
     Screen("rptExample", "print", "view", "?format=pdf"),
 ]
 NEEDS_RECORD = {"detail", "update", "print"}
+
+
+#: Every list and list panel of the area that links to records, with the url name of
+#: the page its record links open.
+LISTS = [
+    (Screen("frmExampleList", "list", "view"), "detail"),
+]
 
 
 def screen_id(screen: Screen) -> str:
@@ -97,3 +106,68 @@ def test_htmx_list_request_gets_only_the_table(client, user_with_role, record):
     assert response.status_code == HTTPStatus.OK
     assert b'id="record-table"' in response.content
     assert b"<html" not in response.content
+
+
+VOID_ELEMENTS = frozenset(
+    {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta"}
+    | {"source", "track", "wbr"},
+)
+
+
+class LinkBoosts(HTMLParser):
+    """The hx-boost value in force on each link: its own, else the nearest ancestor's.
+
+    htmx inherits hx-boost, so a link inside a boosted container loads with HTMX into
+    the container's hx-target unless a closer element says hx-boost="false".
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.open: list[tuple[str, str | None]] = []
+        self.boosts: dict[str, set[str | None]] = {}
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        inherited = self.open[-1][1] if self.open else None
+        boost = attributes.get("hx-boost", inherited)
+        if tag == "a" and attributes.get("href"):
+            self.boosts.setdefault(attributes["href"], set()).add(boost)
+        if tag not in VOID_ELEMENTS:
+            self.open.append((tag, boost))
+
+    def handle_endtag(self, tag):
+        for depth in range(len(self.open) - 1, -1, -1):
+            if self.open[depth][0] == tag:
+                del self.open[depth:]
+                return
+
+
+def link_boosts(content: bytes) -> dict[str, set[str | None]]:
+    """Each link's href, with the hx-boost values in force where it appears."""
+    parser = LinkBoosts()
+    parser.feed(content.decode())
+    parser.close()
+    return parser.boosts
+
+
+@pytest.mark.parametrize(
+    ("screen", "opens"),
+    LISTS,
+    ids=[screen_id(screen) for screen, _ in LISTS],
+)
+def test_record_links_of_a_list_are_not_boosted(
+    client,
+    user_with_role,
+    record,
+    screen,
+    opens,
+):
+    """A record link opens its page normally; the sort links swap only the table."""
+    client.force_login(user_with_role(role_granting(screen.action)))
+    boosts = link_boosts(client.get(url_of(screen, record)).content)
+    record_url = reverse(f"__area__:{opens}", kwargs={"pk": record.pk})
+    assert record_url in boosts, "the list shows no link to the record"
+    assert "true" not in boosts[record_url]
+    sort_links = [href for href in boosts if "sort=" in href]
+    assert sort_links, "the list table has no sort link"
+    assert all(boosts[href] == {"true"} for href in sort_links)

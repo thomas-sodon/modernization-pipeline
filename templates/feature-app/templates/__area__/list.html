@@ -19,6 +19,9 @@
     {{ filter.form|crispy }}
     <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
   </form>
+  {# The container boosts the sort and paging links, which swap only this partial. #}
+  {# The table switches the boost off on its rows (tables.UNBOOSTED_ROWS), so a #}
+  {# record link loads its page normally instead of inside the list. #}
   {% partialdef record-table inline %}
   <div id="record-table"
        hx-boost="true"

@@ -97,12 +97,30 @@ build in this order:
 | `urls.py` | `app_name` and the list, detail, create, update and print routes. The contract adds `form_<id>` and `report_<id>` names. |
 | `saved_queries.py` | The core registry, with one example each for `saved_query`, `formula_output` and `document`. |
 | `services.py` | A service that checks its rule, raises `ValidationError` naming the rule id, and writes inside `transaction.atomic()`. |
-| `tables.py`, `filters.py`, `forms.py` | A django-tables2 table, a django-filter filter set, and a model form with a crispy-forms `FormHelper` (Bootstrap 5). |
+| `tables.py`, `filters.py`, `forms.py` | A django-tables2 table whose rows are not boosted (`UNBOOSTED_ROWS`, see below), a django-filter filter set, and a model form with a crispy-forms `FormHelper` (Bootstrap 5). |
 | `views.py` | Sign-in plus the role check: core's roles are groups with permissions, so a user without the role gets 403. Also shows a filtered table list that returns only the table partial to HTMX, detail, create and update views that save through the services, and a print view with an A4 PDF through django-weasyprint (`?format=pdf`). |
 | `templates/__area__/` | `list.html`, `detail.html`, `form.html` and `print.html` extending `base.html`. The table body is a django-template-partials partial (`list.html#record-table`). The print page loads local stylesheets only, so the PDF renders offline. |
 | `reports/` | The area's report views and exports. |
 | `tests/test_rules.py` | One test per rule, with the rule id first in the docstring and factory data. |
-| `tests/test_views.py` | The access table: anonymous users go to sign-in, users without the role get 403, users with the role get 200, and a PDF starts with `%PDF-`. Also tests the HTMX partial. |
+| `tests/test_views.py` | The access table: anonymous users go to sign-in, users without the role get 403, users with the role get 200, and a PDF starts with `%PDF-`. Also tests the HTMX partial, and that the record links of every list in `LISTS` are not boosted while its sort links are. |
+
+## HTMX boost on lists
+
+htmx inherits `hx-boost`, `hx-target` and `hx-swap` from the enclosing elements. In
+`list.html` the `#record-table` container boosts its links into itself, so the sort
+links and the paging links swap only the table. A record link must not inherit that:
+a boosted record link loads the whole detail page into the list, and the page then
+shows two navigation bars. So:
+
+- Every table of the area spreads `UNBOOSTED_ROWS` into its `Meta.attrs`. It sets
+  `hx-boost="false"` on `<tbody>` and `<tfoot>`, so every link and form in a row
+  loads normally, while the header's sort links and the pagination stay boosted.
+- A link or form outside a table but inside a boosted container (a panel, a card
+  list) gets `hx-boost="false"` itself, or the container boosts only the element
+  that holds the paging links.
+- Add every list and list panel to `LISTS` in `tests/test_views.py`, with the url
+  name of the page its record links open. The test fails when a record link
+  inherits a boost.
 
 Shared calculations come from `app/<app slug>/domain/`. Its README lists them. Never
 copy one into an area. If the skeleton lacks a pattern your area needs, solve it in
