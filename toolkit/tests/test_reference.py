@@ -483,6 +483,102 @@ def test_nz_keeps_currency_and_decimal_values_exact(tmp_path):
         assert dict(ref.describe("qTotal"))["Total"] == "currency"
 
 
+def test_table_star_in_a_view_is_that_tables_columns(tmp_path):
+    """`Item.*` over a parenthesised join of sources sharing column names is exactly Item's
+    columns, as in Access, also when another query selects from the view. HSQLDB stores such a
+    view with the asterisk expanded unqualified, so Notes came from the first joined source."""
+    from toolkit.reference.engine import AccessReference, UnresolvedStarError
+
+    path = tmp_path / "star.accdb"
+    conn = bridge.connect(path, read_only=False, new_version="V2010")
+    try:
+        st = conn.createStatement()
+        st.execute(
+            "CREATE TABLE Kind (KindID LONG, KindName TEXT(20), Notes TEXT(20), "
+            "AddedBy TEXT(20), PRIMARY KEY (KindID))"
+        )
+        st.execute(
+            "CREATE TABLE Tag (TagID LONG, Notes TEXT(20), AddedBy TEXT(20), "
+            "PRIMARY KEY (TagID))"
+        )
+        st.execute(
+            "CREATE TABLE [Item List] ([Item ID] LONG, KindID LONG, TagID LONG, "
+            "Notes TEXT(20), AddedBy TEXT(20), PRIMARY KEY ([Item ID]))"
+        )
+        st.execute("INSERT INTO Kind VALUES (1, 'k1', 'kind-note', 'kind-by')")
+        st.execute("INSERT INTO Tag VALUES (5, 'tag-note', 'tag-by')")
+        for row in ("10, 1, 5, 'item-a', 'by-a'", "11, 1, 5, NULL, 'by-b'"):
+            st.execute(f"INSERT INTO [Item List] VALUES ({row})")
+    finally:
+        conn.close()
+    private = tmp_path / "p"
+    joined = (
+        "FROM Kind INNER JOIN (Tag INNER JOIN [Item List] ON Tag.TagID = "
+        "[Item List].TagID) ON Kind.KindID = [Item List].KindID"
+    )
+    sqls = {
+        "qList": f"SELECT [Item List].*, Kind.KindName {joined} "
+        "ORDER BY [Item List].[Item ID];",
+        "qAliased": "SELECT I.*, K.KindName FROM Kind AS K INNER JOIN (Tag INNER JOIN "
+        "[Item List] AS I ON Tag.TagID = I.TagID) ON K.KindID = I.KindID ORDER BY I.[Item ID];",
+        "qTop": "SELECT TOP 5 qList.* FROM qList;",
+        "qOnAliased": "SELECT qAliased.* FROM qAliased ORDER BY qAliased.[Item ID];",
+    }
+    units = []
+    for uid, deps in (
+        ("qAliased", []),
+        ("qList", []),
+        ("qOnAliased", ["qAliased"]),
+        ("qTop", ["qList"]),
+    ):
+        units.append(
+            {
+                "id": uid,
+                "kind": "saved_query",
+                "object": {"type": "query", "name": uid},
+                "sql_ref": f"sql/{uid}.sql",
+                "depends_on": deps,
+                "params": [],
+                "app_functions": [],
+                "status": "ok",
+                "reason": None,
+                "needs_access_confirmation": False,
+            }
+        )
+    catalog = {
+        "format_version": cat.FORMAT_VERSION,
+        "engine": cat.ENGINE,
+        "engagement": "x",
+        "units": units,
+    }
+    cat.write(private, catalog, sqls)
+    expected = [
+        (10, 1, 5, "item-a", "by-a", "k1"),
+        (11, 1, 5, None, "by-b", "k1"),
+    ]
+    with AccessReference(private, path, catalog) as ref:
+        assert ref.view_errors == {}
+        for uid in ("qList", "qTop", "qAliased", "qOnAliased"):
+            assert ref.rows(uid) == expected, uid
+            assert [c.upper() for c, _t in ref.describe(uid)] == [
+                "ITEM ID",
+                "KINDID",
+                "TAGID",
+                "NOTES",
+                "ADDEDBY",
+                "KINDNAME",
+            ], uid
+        # a derived table's `.*` and a string that looks like one are left alone
+        untouched = "SELECT 'Kind.*' AS s, d.* FROM (SELECT 1 AS x) AS d"
+        assert ref.expand_stars(untouched) == untouched
+        # over a join it is refused, so the view fails instead of being silently wrong
+        derived = (
+            "SELECT d.* FROM Kind INNER JOIN (SELECT 1 AS x) AS d ON Kind.KindID = d.x"
+        )
+        with pytest.raises(UnresolvedStarError):
+            ref.expand_stars(derived)
+
+
 # ------------------------------------------------------------------ build and run (seeds)
 
 
