@@ -53,7 +53,9 @@ from urllib.parse import urlsplit
 import tablib
 from django.apps import apps
 from django.core.exceptions import NON_FIELD_ERRORS
+from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.core.management.color import no_style
 from django.db import DEFAULT_DB_ALIAS
 from django.db import connections
@@ -81,19 +83,39 @@ _SLUG_PACKAGE = _PACKAGE.rpartition(".")[0]
 
 class LoadError(Exception):
     """A dataset that cannot be loaded. exit_code 2 for a refused target or an
-    unreadable dataset.json, 1 for rows that fail. str() never holds a value."""
+    unreadable dataset.json, 1 for rows that fail. str() never holds a value.
 
-    def __init__(self, message: str, exit_code: int = 1, problems=()):
+    `table`, `column`, `code` and `constraint` name what failed (design names only,
+    None when unknown): the dataset table, the column of the first row error, its
+    Django error code or exception class, and the database constraint the driver
+    names. The equivalence harness reports them
+    (equivalence.adapter.describe_failure) without reading the message."""
+
+    def __init__(  # noqa: PLR0913
+        self,
+        message: str,
+        exit_code: int = 1,
+        problems=(),
+        *,
+        table: str | None = None,
+        column: str | None = None,
+        code: str | None = None,
+        constraint: str | None = None,
+    ):
         super().__init__(message)
         self.exit_code = exit_code
         self.problems = list(problems)
+        self.table = table
+        self.column = column
+        self.code = code
+        self.constraint = constraint
 
 
 class TargetRefusedError(LoadError):
     """Engagement rows refused on this database."""
 
     def __init__(self, message: str):
-        super().__init__(message, exit_code=2)
+        super().__init__(message, exit_code=2, code="target-refused")
 
 
 @dataclass
@@ -225,12 +247,30 @@ def legacy_models() -> list:
 # ------------------------------------------------------------------ resources
 
 
+TEXT_FIELDS = ("CharField", "TextField")
+
+
+def _is_text(fld) -> bool:
+    return fld is not None and fld.get_internal_type() in TEXT_FIELDS
+
+
 class KeyForeignKeyWidget(ForeignKeyWidget):
     """ForeignKeyWidget that resolves a key of 0 (Access code lists start at 0, for
-    example Tax Exempt); the stock widget reads every falsy value as NULL."""
+    example Tax Exempt) and a zero-length text key (Access keeps "" in a Required
+    text key whose AllowZeroLength is Yes); the stock widget reads every falsy value
+    as NULL. NULL stays NULL; "" is NULL only when the referenced key is not text."""
+
+    def _target_is_text(self) -> bool:
+        opts = self.model._meta  # noqa: SLF001
+        if self.field == "pk":
+            return _is_text(opts.pk)
+        try:
+            return _is_text(opts.get_field(self.field))
+        except FieldDoesNotExist:
+            return False
 
     def clean(self, value, row=None, **kwargs):
-        if value is None or value == "":
+        if value is None or (value == "" and not self._target_is_text()):
             return None
         if self.use_natural_foreign_keys:
             return super().clean(value, row, **kwargs)
@@ -259,10 +299,39 @@ class _LoadingMixin:
                 continue
             try:
                 model_field = opts.get_field(fld.attribute or name)
-            except LookupError:
+            except FieldDoesNotExist:
                 continue
             if getattr(model_field, "null", False):
                 fld.widget.allow_blank = False
+
+    def validate_instance(
+        self,
+        instance,
+        import_validation_errors=None,
+        validate_unique=True,  # noqa: FBT002
+    ):
+        """full_clean(), except Django's `blank` check on a zero-length string.
+
+        Access keeps "" in a Required text column whose AllowZeroLength is Yes (the
+        Access engine refuses it where AllowZeroLength is No), so a "" the dataset
+        carries is a value the original stored; `blank=False` on the model field is
+        the screens' rule (an empty input box is NULL in Access) and stays there.
+        Every other check runs, uniqueness of the "" columns included."""
+        try:
+            super().validate_instance(
+                instance,
+                import_validation_errors,
+                validate_unique=validate_unique,
+            )
+        except ValidationError as exc:
+            errors, kept = _without_zero_length_blanks(instance, exc)
+            if errors or not kept:
+                raise ValidationError(errors or exc) from None
+            if validate_unique:
+                # full_clean() leaves fields that had an error out of these checks
+                exclude = set(import_validation_errors or ())
+                instance.validate_unique(exclude=exclude)
+                instance.validate_constraints(exclude=exclude)
 
     def before_save_instance(self, instance, row, **kwargs):
         super().before_save_instance(instance, row, **kwargs)
@@ -272,6 +341,30 @@ class _LoadingMixin:
         """Store the row as the dataset carries it: the base Model.save, not the
         model's own save() (which may stamp or derive columns)."""
         models.Model.save(instance)
+
+
+def _without_zero_length_blanks(instance, exc) -> tuple[dict, list[str]]:
+    """(the errors of `exc` without the `blank` errors of text fields, and foreign
+    keys to a text key, that hold "", the names of those fields)."""
+    if not hasattr(exc, "error_dict"):
+        return {NON_FIELD_ERRORS: exc.error_list}, []
+    opts = instance._meta  # noqa: SLF001
+    errors: dict = {}
+    kept: list[str] = []
+    for name, items in exc.error_dict.items():
+        try:
+            fld = opts.get_field(name)
+        except FieldDoesNotExist:
+            fld = None
+        # a foreign key holding "" points at a "" text key: its type is the key's
+        text = _is_text(fld.target_field if fld and fld.is_relation else fld)
+        zero_length = text and getattr(instance, fld.attname, None) == ""
+        rest = [e for e in items if not (zero_length and e.code == "blank")]
+        if rest:
+            errors[name] = rest
+        elif zero_length:
+            kept.append(name)
+    return errors, kept
 
 
 _LOADING_CLASSES: dict[type, type] = {}
@@ -346,7 +439,7 @@ def _column_of(model, name: str) -> str:
         return "(row)"
     try:
         return model._meta.get_field(name).column  # noqa: SLF001
-    except LookupError:
+    except FieldDoesNotExist:
         return name
 
 
@@ -355,14 +448,47 @@ def _codes(errors) -> str:
     return ",".join(codes)
 
 
-def _row_problems(table: str, model, result, numbers: list[int]) -> list[str]:
+@dataclass(frozen=True)
+class RowProblem:
+    """One row error: the text 'table: row n: column c (code)' and the names in it
+    (never a value)."""
+
+    text: str
+    column: str
+    code: str
+    constraint: str | None = None
+
+
+def _driver_names(exc: BaseException) -> tuple[str | None, str | None]:
+    """(column, constraint) from a database driver's diagnostics in the exception
+    chain (psycopg's diag), never from the message."""
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        diag = getattr(exc, "diag", None)
+        if diag is not None:
+            return (
+                getattr(diag, "column_name", None),
+                getattr(diag, "constraint_name", None),
+            )
+        exc = exc.__cause__ or exc.__context__
+    return None, None
+
+
+def _row_problems(table: str, model, result, numbers: list[int]) -> list[RowProblem]:
     """Row errors as 'table: row n: column c (code)', never a value."""
-    problems: list[str] = []
+    problems: list[RowProblem] = []
 
     def original(number: int | None) -> str:
         if number is not None and 1 <= number <= len(numbers):
             return str(numbers[number - 1])
         return "?"
+
+    def add(number, column: str, code: str, constraint: str | None = None) -> None:
+        text = f"{table}: row {original(number)}: column {column} ({code})"
+        if constraint:
+            text += f" constraint {constraint}"
+        problems.append(RowProblem(text, column, code, constraint))
 
     for invalid in result.invalid_rows:
         err = invalid.error
@@ -372,10 +498,7 @@ def _row_problems(table: str, model, result, numbers: list[int]) -> list[str]:
             else [(NON_FIELD_ERRORS, err.error_list)]
         )
         for name, errors in items:
-            problems.append(
-                f"{table}: row {original(invalid.number)}: column "
-                f"{_column_of(model, name)} ({_codes(errors)})",
-            )
+            add(invalid.number, _column_of(model, name), _codes(errors))
     for number, errors in result.row_errors():
         for error in errors:
             exc = error.error
@@ -388,10 +511,8 @@ def _row_problems(table: str, model, result, numbers: list[int]) -> list[str]:
                     if f.is_relation and f.related_model is related
                 ]
                 column = "/".join(fks) or column
-            problems.append(
-                f"{table}: row {original(number)}: column {column} "
-                f"({type(exc).__name__})",
-            )
+            db_column, constraint = _driver_names(exc)
+            add(number, db_column or column, type(exc).__name__, constraint)
     return problems
 
 
@@ -487,7 +608,7 @@ def _import_rows(
     columns: list[str],
     rows: list[tuple[int, dict[str, Any]]],
     reason: str,
-) -> tuple[int, list[str]]:
+) -> tuple[int, list[RowProblem]]:
     resource_class = resources()[db_table]
     model = resource_class._meta.model  # noqa: SLF001
     rows = parents_first(model, rows)
@@ -505,7 +626,12 @@ def _import_rows(
     problems = _row_problems(db_table, model, result, numbers)
     if result.base_errors:
         problems.extend(
-            f"{db_table}: {type(e.error).__name__}" for e in result.base_errors
+            RowProblem(
+                f"{db_table}: {type(e.error).__name__}",
+                "(table)",
+                type(e.error).__name__,
+            )
+            for e in result.base_errors
         )
     return len(rows), problems
 
@@ -522,7 +648,7 @@ def _mapped_rows(
         for db_table, values in function(row):
             if db_table not in resources():
                 msg = f"{table}: row {number}: IMPORT_MAP names unknown table"
-                raise LoadError(msg)
+                raise LoadError(msg, table=table, code="import-map")
             columns, bucket = out.setdefault(db_table, ([], []))
             for column in values:
                 if column not in columns:
@@ -543,7 +669,7 @@ def load_dataset(
         meta = eqds.read_meta(directory)
     except eqds.DatasetError as exc:
         msg = f"{directory}: {exc}"
-        raise LoadError(msg, exit_code=2) from None
+        raise LoadError(msg, exit_code=2, code="dataset-json") from None
     kind = str(meta.get("kind"))
     name = str(meta.get("name"))
     check_target(kind, using)
@@ -562,13 +688,13 @@ def load_dataset(
             try:
                 rows = list(tables[table])
             except eqds.DatasetError as exc:
-                raise LoadError(str(exc)) from None
+                raise LoadError(str(exc), table=table, code="dataset-csv") from None
             if how == "table":
                 columns = [c["name"] for c in by_name[table]["columns"]]
                 groups = {target: (columns, list(enumerate(rows, start=1)))}
             else:
                 groups = _mapped_rows(table, target, rows)
-            problems: list[str] = []
+            problems: list[RowProblem] = []
             for db_table, (columns, numbered) in groups.items():
                 count, errors = _import_rows(db_table, columns, numbered, reason)
                 problems.extend(errors)
@@ -578,7 +704,14 @@ def load_dataset(
                     loaded_models.append(model)
             if problems:
                 msg = f"{table}: {len(problems)} row errors; nothing was loaded"
-                raise LoadError(msg, problems=problems[:MAX_REPORTED])
+                raise LoadError(
+                    msg,
+                    problems=[p.text for p in problems[:MAX_REPORTED]],
+                    table=table,
+                    column=problems[0].column,
+                    code=problems[0].code,
+                    constraint=problems[0].constraint,
+                )
         _reset_sequences(loaded_models, using)
     return result
 

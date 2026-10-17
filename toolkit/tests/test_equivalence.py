@@ -511,6 +511,110 @@ def test_missing_manifest_or_harness_exits_2(eng, capfd):
     assert any("manifest.json" in m for m in s["messages"])
 
 
+LOAD_FAILURE = (
+    "load_dataset failed: WidgetLoadError <- WidgetDbError "
+    "(table Widgets, column ParentID, constraint FK_Widgets_Parent, sqlstate 23503)"
+)
+
+
+def failing_load_stub(cfg: dict) -> dict:
+    cfg["fail_load"] = "Key (ParentID)=(CANARY-80) is not present in Widgets"
+    cfg["fail_load_names"] = {"table": "Widgets", "column": "ParentID"}
+    cfg["fail_load_diag"] = {
+        "constraint_name": "FK_Widgets_Parent",
+        "sqlstate": "23503",
+    }
+    return cfg
+
+
+def test_a_failed_dataset_load_is_named_per_cell_without_values(eng, capfd, tmp_path):
+    build(eng, stub_cfg=failing_load_stub(stub()))
+    rc, s, _err = run_cli(
+        capfd,
+        eng,
+        "--adapter",
+        "reference",
+        "--datasets",
+        "synthetic",
+        "--min-pass-per-cell",
+        "0.9",
+        "--matrix",
+        str(tmp_path / "matrix.json"),
+    )
+    assert rc == 1
+    line = json.dumps(s)
+    assert "CANARY-" not in line
+    assert all(c["errors"] == 3 and c["rate"] == 0.0 for c in s["cells"])
+    assert {(u["dataset"], u["id"], u["status"], u["reason"]) for u in s["units"]} == {
+        (ds, uid, "error", LOAD_FAILURE)
+        for ds in ("seed-1", "seed-2")
+        for uid in ("qryAlpha", "qryBeta", "qryGamma")
+    }
+    # one message per cell, before the rate messages
+    assert s["messages"][:2] == [
+        f"cell seed-1/reference: {LOAD_FAILURE}",
+        f"cell seed-2/reference: {LOAD_FAILURE}",
+    ]
+    assert "CANARY-" not in (tmp_path / "matrix.json").read_text(encoding="utf-8")
+
+
+def test_an_engagement_load_failure_is_named_and_redacted(eng, capfd, monkeypatch):
+    target, private = paths(eng)
+    source = private / "sources" / "app.accdb"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(b"synthetic widget database")
+    key = canon.key_from_file(source)
+    spec = {"qryAlpha": {"area": "orders", "golden": {"engagement": A, "seed-1": A}}}
+    cfg = failing_load_stub({"rows": {"engagement": {"qryAlpha": A}}})
+    make_target(target, spec, private=private, stub=cfg, key=key)
+    monkeypatch.setenv("MP_SANDBOX", "mp-data")
+    junit_dir = private / "results" / "S5"
+    rc, s, err = run_cli(
+        capfd,
+        eng,
+        "--adapter",
+        "reference",
+        "--datasets",
+        "engagement",
+        "--junit-dir",
+        str(junit_dir),
+    )
+    assert rc == 1
+    assert "CANARY-" not in json.dumps(s) + err
+    assert "CANARY-" not in (
+        junit_dir / "junit-equivalence-engagement-reference.xml"
+    ).read_text(encoding="utf-8")
+    assert s["units"] == [
+        {
+            "id": "qryAlpha",
+            "status": "error",
+            "reason": LOAD_FAILURE,
+            "dataset": "engagement",
+            "db": "reference",
+        }
+    ]
+    assert s["messages"][0] == f"cell engagement/reference: {LOAD_FAILURE}"
+
+
+def test_setup_reason_rechecks_the_junit_property():
+    tc = ET.fromstring(
+        "<testcase><properties><property name='equivalence.setup-error' value='"
+        + json.dumps(
+            {
+                "phase": "load_dataset",
+                "exception": "LoadError",
+                "chain": ["LoadError", "CANARY 81"],
+                "table": "CANARY-82\n",
+                "column": "ParentID",
+                "message": "CANARY-83",
+            }
+        ).replace("'", "&apos;")
+        + "'/></properties><error/></testcase>"
+    )
+    assert eq.setup_reason(tc) == "load_dataset failed: LoadError (column ParentID)"
+    assert eq.setup_reason(ET.fromstring("<testcase><error/></testcase>")) is None
+
+
 def test_a_cell_crash_counts_as_2(eng, capfd):
     build(eng)
     target, _ = paths(eng)

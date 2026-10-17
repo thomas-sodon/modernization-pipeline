@@ -371,6 +371,57 @@ def test_a_failing_load_dataset_errors_every_unit(target, tmp_path):
     proc = run_pytest(target, *cell("--junitxml", str(junit)))
     assert proc.returncode == 1
     assert all(tc.find("error") is not None for tc in junit_cases(junit).values())
+    for tc in junit_cases(junit).values():
+        props = {p.get("name"): p.get("value") for p in tc.iter("property")}
+        assert json.loads(props["equivalence.setup-error"]) == {
+            "phase": "load_dataset",
+            "exception": "RuntimeError",
+            "chain": ["RuntimeError"],
+        }
+
+
+def test_a_load_error_names_its_classes_and_design_names_in_junit(target, tmp_path):
+    stub = good_stub()
+    stub["fail_load"] = "row 3 of Widgets: ParentID 99 is not present"
+    stub["fail_load_names"] = {"table": "Widgets", "column": "ParentID"}
+    stub["fail_load_diag"] = {
+        "constraint_name": "FK_Widgets_Parent",
+        "sqlstate": "23503",
+    }
+    set_stub(target, stub)
+    junit = tmp_path / "junit.xml"
+    proc = run_pytest(target, *cell("--junitxml", str(junit)))
+    assert proc.returncode == 1
+    cases = junit_cases(junit)
+    assert len(cases) == 3
+    for tc in cases.values():
+        assert tc.find("error") is not None
+        props = {p.get("name"): p.get("value") for p in tc.iter("property")}
+        assert json.loads(props["equivalence.setup-error"]) == {
+            "phase": "load_dataset",
+            "exception": "WidgetLoadError",
+            "chain": ["WidgetLoadError", "WidgetDbError"],
+            "table": "Widgets",
+            "column": "ParentID",
+            "constraint": "FK_Widgets_Parent",
+            "sqlstate": "23503",
+        }
+        assert "99" not in props["equivalence.setup-error"]
+
+
+def test_an_adapter_that_cannot_be_created_is_phase_adapter(target, tmp_path):
+    (target / "adapter.toml").write_text(
+        'format_version = 1\nadapter = "stub"\nentrypoint = "stub_adapter:NoSuchAdapter"\n',
+        encoding="utf-8",
+    )
+    junit = tmp_path / "junit.xml"
+    proc = run_pytest(target, *cell("--junitxml", str(junit)))
+    assert proc.returncode == 1
+    for tc in junit_cases(junit).values():
+        props = {p.get("name"): p.get("value") for p in tc.iter("property")}
+        info = json.loads(props["equivalence.setup-error"])
+        assert info["phase"] == "adapter"
+        assert info["exception"] == "AttributeError"
 
 
 def test_without_the_plugin_options_the_runner_is_not_collected(target):

@@ -166,8 +166,9 @@ def fake_feature_apps(tmp_path, monkeypatch):
 
 @pytest.mark.usefixtures("fake_feature_apps")
 def test_feature_apps_with_urls_are_included_at_their_label():
-    patterns = discovery.feature_urlpatterns()
-    assert [str(p.pattern) for p in patterns] == ["mpfake_area/"]
+    # the app's real feature areas are listed too; only the fake ones are known here
+    patterns = [str(p.pattern) for p in discovery.feature_urlpatterns()]
+    assert [p for p in patterns if p.startswith("mpfake_")] == ["mpfake_area/"]
 
 
 @pytest.mark.django_db
@@ -180,9 +181,11 @@ def test_feature_url_serves(client):
 @pytest.mark.usefixtures("fake_feature_apps")
 def test_feature_nav_lists_feature_apps_sorted(rf):
     expected = [("Mpfake Area", "/mpfake_area/"), ("Mpfake Nourls", "/mpfake_nourls/")]
-    assert discovery.feature_nav_items() == expected
+    items = discovery.feature_nav_items()
+    assert items == sorted(items)
+    assert [i for i in items if i[1].startswith("/mpfake_")] == expected
     context = feature_nav(rf.get("/"))
-    assert context["feature_nav"] == expected
+    assert context["feature_nav"] == items
     assert context["project_name"] == settings.PROJECT_NAME
 
 
