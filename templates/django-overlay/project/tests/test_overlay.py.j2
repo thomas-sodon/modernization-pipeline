@@ -1,8 +1,8 @@
 """Overlay behaviour (written by toolkit new-app).
 
 App discovery and MP_ONLY_AREAS, feature URLs and nav, test-database names, database
-settings, /health/, closed registration and the sites migration guard. Fake packages
-live in tmp_path, never inside the app tree.
+settings, /health/, closed registration, the sites migration guard and djLint on the
+templates. Fake packages live in tmp_path, never inside the app tree.
 """
 
 from __future__ import annotations
@@ -379,3 +379,19 @@ def test_sites_migration_touches_the_sequence_only_on_postgresql():
 @pytest.mark.django_db
 def test_sites_migration_sets_the_site_name():
     assert Site.objects.get(id=settings.SITE_ID).name == settings.PROJECT_NAME
+
+
+# ---------------------------------------------------------------- templates
+
+
+@pytest.mark.parametrize("mode", ["--check", "--lint"])
+def test_templates_pass_the_djlint_hooks(mode):
+    djlint = Path(sys.executable).parent / "djlint"
+    result = subprocess.run(  # noqa: S603
+        [str(djlint), ".", mode, "--profile=django"],
+        cwd=APP_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout[-2000:]

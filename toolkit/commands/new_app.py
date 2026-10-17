@@ -16,8 +16,10 @@ Full run (no --only):
    `uv add` every stack.app_packages pin (main, then --dev); `uv lock`.
 4. Apply templates/django-overlay/: project/ mirrors app/, package/ mirrors app/<slug>/ (files
    ending .j2 are rendered with Jinja2, the rest copied); core/ only with --only core; _repo/
-   holds target-repo files. Set the pytest options, add .env and backups/ to app/.gitignore and
-   write app/.overlay-manifest.json (relative path -> sha256 of every file written, except .env).
+   holds target-repo files. Set the pytest options, add .env and backups/ to app/.gitignore,
+   reformat the templates with the djLint version of the app's hooks (then require djlint --check
+   and --lint to pass, so the target repo's djLint hooks accept what new-app writes) and write
+   app/.overlay-manifest.json (relative path -> sha256 of every file written, except .env).
 5. Copy the manifest files into --out (never .venv/ or __pycache__/), remove files an older
    manifest listed that are no longer generated, write app/.env (DATABASE_URL=$PG_URL/<db_name>)
    when it is missing, render the CI workflow to <target_repo>/.github/workflows/<slug>.yml and
@@ -69,6 +71,7 @@ GITIGNORE_LINES = (".env", "backups/")
 RUFF_HOOKS_REPO = "https://github.com/astral-sh/ruff-pre-commit"
 DJLINT_REPO = "https://github.com/Riverside-Healthcare/djLint"
 DJLINT_HOOKS = ("djlint-reformat-django", "djlint-django")
+DJLINT_DEFAULT_REV = "v1.36.4"
 PLACEHOLDER = re.compile(r"\{\{e\.([\w.]+)\}\}")
 PYTEST_ADDOPTS = 'addopts = "--ds=config.settings.test --import-mode=importlib"'
 PYTEST_PYTHONPATH = 'pythonpath = [ ".", ".." ]'
@@ -477,6 +480,52 @@ def extend_gitignore(path: Path) -> None:
         path.write_text(text, encoding="utf-8")
 
 
+def djlint_version(djlint_rev: str | None) -> str:
+    rev = (djlint_rev or DJLINT_DEFAULT_REV).strip()
+    return rev.removeprefix("v")
+
+
+def djlint(app: Path, version: str, mode: str, exclude_newer: str) -> int:
+    """Run djLint <version> over the app's templates as the pre-commit hooks do (cwd app/, so
+    app/pyproject.toml [tool.djlint] applies); stdout goes to stderr."""
+    env = {**os.environ, "UV_EXCLUDE_NEWER": exclude_newer}
+    result = subprocess.run(
+        [
+            "uv",
+            "tool",
+            "run",
+            "--from",
+            f"djlint=={version}",
+            "djlint",
+            ".",
+            mode,
+            "--profile=django",
+        ],
+        cwd=app,
+        env=env,
+        stdout=sys.stderr,
+        stderr=sys.stderr,
+        check=False,
+    )
+    return result.returncode
+
+
+def format_templates(app: Path, djlint_rev: str | None, exclude_newer: str) -> None:
+    """Reformat the generated templates with the djLint version of the app's hooks, so the
+    target repo's djlint-reformat-django and djlint-django hooks pass on what new-app writes
+    (the template's Jinja conditionals leave blank lines that both hooks reject)."""
+    version = djlint_version(djlint_rev)
+    rc = djlint(app, version, "--reformat", exclude_newer)
+    if rc not in (0, 1):  # 1 means files were reformatted
+        msg = f"djlint {version} --reformat failed in the generated app (exit {rc})"
+        raise NewAppError(msg)
+    for mode in ("--check", "--lint"):
+        rc = djlint(app, version, mode, exclude_newer)
+        if rc != 0:
+            msg = f"generated templates fail djlint {version} {mode} after reformatting"
+            raise NewAppError(msg)
+
+
 def cookiecutter_keys(checkout: Path) -> set[str]:
     data = json.loads((checkout / "cookiecutter.json").read_text(encoding="utf-8"))
     return {key for key in data if not key.startswith("_")}
@@ -541,6 +590,7 @@ def generate(
     render_tree(OVERLAY / "package", app / ctx["slug"], ctx)
     set_pytest_options(app / "pyproject.toml")
     extend_gitignore(app / ".gitignore")
+    format_templates(app, djlint_rev, exclude_newer)
     for path in app.rglob("__pycache__"):
         shutil.rmtree(path, ignore_errors=True)
     files = manifest_files(app)
@@ -725,7 +775,7 @@ def write_repo_files(
     text = pc.read_text(encoding="utf-8")
     revs = {
         RUFF_HOOKS_REPO: ruff_rev(text, ruff_pin),
-        DJLINT_REPO: djlint_rev or "v1.36.4",
+        DJLINT_REPO: djlint_rev or DJLINT_DEFAULT_REV,
     }
     merged = merge_app_hooks(text, ctx["slug"], ctx["target_root"], revs)
     if merged != text:

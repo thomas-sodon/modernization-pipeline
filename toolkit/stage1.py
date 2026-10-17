@@ -4,11 +4,13 @@
 [--schema-from auto|model|data-model] [--schema-only] [--replace] [--verify] [--require-rows]
 [--dialects from-engagement] [--report FILE]`
 
-- The schema comes from the design zone's `out/model/schema.json` (SQLAlchemy Core MetaData, every
-  column through `toolkit.typemap`): original table and column names, primary keys, unique
-  indexes, literal defaults (and Now() as CURRENT_TIMESTAMP), and foreign keys for relationships
-  with enforced integrity, keeping their cascade rules. On SQL Server a second cascade path to a
-  table becomes NO ACTION. Everything not created is listed in the report.
+- The schema comes from the design zone's `out/model/schema.json`, or for workbooks from
+  `analysis/data-model.json` (`--schema-from data-model`; `auto` picks it when `source.kind` is
+  xlsm), as SQLAlchemy Core MetaData with every column through `toolkit.typemap`: original
+  table and column names, primary keys, unique indexes, literal defaults (and Now() as
+  CURRENT_TIMESTAMP), and foreign keys for relationships with enforced integrity, keeping their
+  cascade rules. On SQL Server a second cascade path to a table becomes NO ACTION. Everything
+  not created is listed in the report. A data model builds the schema only (`--schema-only`).
 - Rows come from a dataset directory (`toolkit.dataset`, contracts section 7) or, for the cutover,
   from the back-end file at `database.stage1.fresh_copy` (`toolkit.dataset.open_backend`). They
   are inserted in foreign-key order in batches of 1000, keeping autonumber values; foreign keys
@@ -64,7 +66,12 @@ MAX_NAME_BYTES = typemap.PG_MAX_IDENTIFIER_BYTES
 ENGAGEMENT_ONLY = (
     "engagement data loads only into mpdata_* databases or a secret: target"
 )
-DATA_MODEL_MSG = "not built yet: S4.models adds it for workbooks"
+DATA_MODEL_FILE = Path("analysis") / "data-model.json"
+DATA_MODEL_MISSING = "analysis/data-model.json missing: run S1 (S1.synthesize) first"
+DATA_MODEL_ROWS = (
+    "--schema-from data-model builds the schema only (add --schema-only); workbook rows load "
+    "through the app's import_dataset and legacy/import_map.py"
+)
 TARGET_DIFFERS = "target differs; use --replace"
 SECRET_NOT_EMPTY = "target not empty; ask the DBA to drop and recreate it"
 
@@ -285,6 +292,7 @@ class Design:
     sha256: str
     schema: dict
     tables: list[dict]
+    label: str = "schema.json"  # the input's name in summaries and reports
 
     @property
     def by_name(self) -> dict:
@@ -295,20 +303,56 @@ def schema_path(eng: dict) -> Path:
     return Path(eng["paths"]["private"]) / tds.SCHEMA_FILE
 
 
-def load_design(eng: dict, schema_from: str) -> Design:
+def data_model_path(eng: dict) -> Path:
+    return Path(eng["paths"]["target"]) / DATA_MODEL_FILE
+
+
+def uses_data_model(eng: dict, schema_from: str) -> bool:
+    """True for --schema-from data-model, and for auto when source.kind is xlsm."""
     kind = (eng.get("source") or {}).get("kind")
-    if schema_from == "data-model" or (schema_from == "auto" and kind == "xlsm"):
-        raise Stage1Error(DATA_MODEL_MSG)
+    return schema_from == "data-model" or (schema_from == "auto" and kind == "xlsm")
+
+
+def _read_json(path: Path, label: str) -> tuple[bytes, dict]:
+    raw = path.read_bytes()
+    try:
+        doc = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        raise Stage1Error(f"{label} is not valid JSON") from None
+    if not isinstance(doc, dict) or doc.get("format_version") != 1:
+        raise Stage1Error(f"{label}: unknown format_version")
+    return raw, doc
+
+
+def load_data_model(eng: dict) -> Design:
+    """The workbook data model (contracts section 8) as a Design: its tables and relationships
+    have the schema.json shapes, so build_plan maps them the same way."""
+    from toolkit.rules import lint_data_model
+
+    path = data_model_path(eng)
+    if not path.is_file():
+        raise Stage1Error(DATA_MODEL_MISSING)
+    raw, doc = _read_json(path, "analysis/data-model.json")
+    problems = lint_data_model(doc)
+    if problems:
+        shown = "; ".join(f"{ptr or '/'}: {text}" for ptr, text in problems[:5])
+        raise Stage1Error(
+            f"analysis/data-model.json fails schema-lint ({len(problems)} problem(s)): {shown}"
+        )
+    tables = [t for t in doc["tables"] if t.get("role", "data") != "documentation"]
+    schema = {"tables": tables, "relationships": doc.get("relationships") or []}
+    return Design(
+        path, hashlib.sha256(raw).hexdigest(), schema, tables, "data-model.json"
+    )
+
+
+def load_design(eng: dict, schema_from: str) -> Design:
+    if uses_data_model(eng, schema_from):
+        return load_data_model(eng)
     path = schema_path(eng)
     if not path.is_file():
         raise Stage1Error("model schema.json missing: run parse first")
-    raw = path.read_bytes()
-    try:
-        schema = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError):
-        raise Stage1Error("model schema.json is not valid JSON") from None
-    if schema.get("format_version") != 1:
-        raise Stage1Error("model schema.json: unknown format_version")
+    raw, schema = _read_json(path, "model schema.json")
     tables = [
         t
         for t in schema.get("tables") or []
@@ -374,6 +418,7 @@ def _with_default(col: sa.Column, clause) -> sa.Column:
         col.type,
         primary_key=col.primary_key,
         nullable=col.nullable,
+        autoincrement=col.autoincrement,
         server_default=clause,
     )
 
@@ -404,6 +449,7 @@ class Plan:
     not_created: list  # (kind, object, reason)
     cascade_no_action: list  # relationship names (SQL Server)
     added_columns: list  # (table, column)
+    design_label: str = "schema.json"  # schema.json or data-model.json, for messages
 
 
 def _cascade_conflict(graph: dict, parent: str, child: str) -> bool:
@@ -463,6 +509,7 @@ def build_plan(design: Design, dialect: str) -> Plan:
         not_created=[],
         cascade_no_action=[],
         added_columns=[],
+        design_label=design.label,
     )
     unique_cols: dict = {}
     for t in sorted(design.tables, key=lambda x: x["name"]):
@@ -476,6 +523,11 @@ def build_plan(design: Design, dialect: str) -> Plan:
                 plan.omitted.append((tname, c["name"], c["type"], reason))
                 continue
             col = typemap.sa_column(c, primary_key=c["name"] in pk)
+            if c["type"] != "autonumber":
+                # Only an AutoNumber gets an identity: SQLAlchemy would otherwise make a
+                # single integer key that Access numbers by hand (a Byte or Long Integer
+                # key) SERIAL on PostgreSQL and IDENTITY on SQL Server.
+                col.autoincrement = False
             clause, why = default_clause(c)
             if why:
                 plan.not_created.append(("default", f"{tname}.{c['name']}", why))
@@ -936,7 +988,7 @@ def structure_problems(conn, plan: Plan, label: str) -> tuple[list[str], set]:
     for t in sorted(expected - present):
         problems.append(f"{label}: table {t} missing")
     for t in sorted(present - expected):
-        problems.append(f"{label}: table {t} is not in schema.json")
+        problems.append(f"{label}: table {t} is not in {plan.design_label}")
     dialect = conn.dialect
     for name in sorted(expected & present):
         table = plan.tables[name]
@@ -956,7 +1008,9 @@ def structure_problems(conn, plan: Plan, label: str) -> tuple[list[str], set]:
                 problems.append(f"{label}: {name}.{c.name} type differs")
         for cname in sorted(set(reflected) - {c.name for c in table.columns}):
             if cname != typemap.ROWVERSION_COLUMN:
-                problems.append(f"{label}: {name}.{cname} is not in schema.json")
+                problems.append(
+                    f"{label}: {name}.{cname} is not in {plan.design_label}"
+                )
         pk = insp.get_pk_constraint(name).get("constrained_columns") or []
         if list(pk) != list(plan.expected_pk.get(name, [])):
             problems.append(f"{label}: {name} primary key differs")
@@ -1316,7 +1370,7 @@ def render_report(
         "",
         "| Input | sha256 |",
         "|---|---|",
-        f"| schema.json | `{design.sha256}` |",
+        f"| {design.label} | `{design.sha256}` |",
     ]
     if source is None:
         lines.append("| dataset | not read (`--schema-only`) |")
@@ -1495,6 +1549,8 @@ def run(eng: dict, args, env=None) -> tuple[int, dict]:
     )
     if engagement_data and outside:
         raise Stage1Error(ENGAGEMENT_ONLY)
+    if uses_data_model(eng, args.schema_from) and not opts.schema_only:
+        raise Stage1Error(DATA_MODEL_ROWS)
     design = load_design(eng, args.schema_from)
     eps = endpoints(spec, args.dialects, eng, env)
     source = None
@@ -1520,7 +1576,7 @@ def run(eng: dict, args, env=None) -> tuple[int, dict]:
         )
         messages.append(f"wrote {report.name}")
     entries = [e for o in outcomes for e in o.entries]
-    sha256s = {"schema.json": design.sha256}
+    sha256s = {design.label: design.sha256}
     if source is not None:
         sha256s[source.sha_name] = source.sha256
     counts = {

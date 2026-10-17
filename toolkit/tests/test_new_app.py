@@ -478,3 +478,52 @@ def test_sql_server_jobs_install_unixodbc_and_app_jobs_install_pango():
         uses_mssql = "mssql" in (job.get("services") or {})
         has_odbc = any("ACCEPT_EULA=Y apt-get install -y unixodbc" in r for r in runs)
         assert has_odbc == uses_mssql, name
+
+
+def test_lint_job_runs_djlint_like_the_app_hooks():
+    runs = [s.get("run", "") for s in workflow("northwind")["jobs"]["lint"]["steps"]]
+    assert "uv run djlint . --check --profile=django" in runs
+    assert "uv run djlint . --lint --profile=django" in runs
+
+
+# ---------------------------------------------------------------- template formatting
+
+
+class FakeDjlint:
+    """Records djLint calls; returns the exit code given for each mode."""
+
+    def __init__(self, codes: dict[str, int]):
+        self.codes = codes
+        self.calls: list[tuple[list[str], Path, str]] = []
+
+    def __call__(self, cmd, cwd, env, **_kwargs):
+        self.calls.append((cmd, cwd, env["UV_EXCLUDE_NEWER"]))
+        mode = next(a for a in cmd if a in ("--reformat", "--check", "--lint"))
+        return subprocess.CompletedProcess(cmd, self.codes.get(mode, 0))
+
+
+def test_templates_are_reformatted_with_the_hook_version_then_checked(
+    tmp_path, monkeypatch
+):
+    fake = FakeDjlint({"--reformat": 1})  # 1: files were reformatted
+    monkeypatch.setattr(new_app.subprocess, "run", fake)
+    new_app.format_templates(tmp_path, "v1.36.4", "2026-10-16T00:00:00Z")
+    modes = [cmd[-2] for cmd, _cwd, _env in fake.calls]
+    assert modes == ["--reformat", "--check", "--lint"]
+    for cmd, cwd, exclude_newer in fake.calls:
+        assert cmd[:6] == ["uv", "tool", "run", "--from", "djlint==1.36.4", "djlint"]
+        assert cmd[-1] == "--profile=django"
+        assert cwd == tmp_path
+        assert exclude_newer == "2026-10-16T00:00:00Z"
+
+
+def test_the_djlint_version_defaults_to_the_hook_rev():
+    assert new_app.djlint_version(None) == "1.36.4"
+    assert new_app.djlint_version("v1.40.0") == "1.40.0"
+
+
+@pytest.mark.parametrize("codes", [{"--lint": 1}, {"--check": 1}, {"--reformat": 2}])
+def test_templates_that_still_fail_djlint_stop_generation(tmp_path, monkeypatch, codes):
+    monkeypatch.setattr(new_app.subprocess, "run", FakeDjlint(codes))
+    with pytest.raises(new_app.NewAppError, match="djlint"):
+        new_app.format_templates(tmp_path, "v1.36.4", "2026-10-16T00:00:00Z")
